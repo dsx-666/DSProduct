@@ -4,14 +4,12 @@ import lombok.Getter;
 
 @Getter
 public enum Code{
-    Null(6001,"该字段为空"),
-    StyleError(6002,"格式错误"),
-    ServerError(6003,"服务器错误"),
-    Success(200,"响应成功")
+    ParamError(20001,"参数错误"),
+    ServerError(500,"服务器错误"),
+    Success(200,"响应成功"),
+    UniqueError(20002,"出现重复"),
+    DataError(20003,"数据库错误")
     ;
-
-
-
 
     private final Integer code;
     private final String desc;
