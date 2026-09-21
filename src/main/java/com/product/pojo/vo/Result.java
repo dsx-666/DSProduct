@@ -1,4 +1,4 @@
-package com.product.vo;
+package com.product.pojo.vo;
 
 import com.product.enums.Code;
 import lombok.AllArgsConstructor;
@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 
-@Component
 @Data
 @Builder
 @AllArgsConstructor

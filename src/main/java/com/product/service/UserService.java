@@ -1,16 +1,13 @@
 package com.product.service;
 
-import com.product.dto.CreateUserDto;
-import com.product.mapper.UserMapper;
-import com.product.vo.CreateUserVo;
-import com.product.vo.Result;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import com.product.pojo.dto.UserDto;
+import com.product.pojo.vo.LoginUserVo;
+import com.product.pojo.vo.RegisterUserVo;
+import com.product.pojo.vo.Result;
 
 
 public interface UserService {
-
-
-    Result<CreateUserVo> createUser(CreateUserDto createUserDto);
+    Result<RegisterUserVo> registerUser(UserDto createUserDto);
+    Result<LoginUserVo> loginUser(UserDto updateUserDto);
 
 }

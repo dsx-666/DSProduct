@@ -1,9 +1,12 @@
 server:
   port: 8080
 
+jwt:
+  secret: "dsx666"
+  expire: 3600000
+
 spring:
-  security:
-    enabled: false
+
   datasource:
     url: jdbc:mysql://localhost:3306/product?serverTimezone=Asia/Shanghai
     username: root

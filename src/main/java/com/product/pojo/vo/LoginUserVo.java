@@ -1,14 +1,16 @@
-package com.product.vo;
+package com.product.pojo.vo;
+
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Builder
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CreateUserVo {
+@Builder
+public class LoginUserVo {
+    private Long userId;
     private String username;
 }
