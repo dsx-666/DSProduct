@@ -15,6 +15,7 @@ import lombok.NoArgsConstructor;
 @TableName("user")
 public class User {
     @TableId(type = IdType.AUTO)
+    @TableField("id")
     private Long id;
     @TableField("user_name")
     private String username;

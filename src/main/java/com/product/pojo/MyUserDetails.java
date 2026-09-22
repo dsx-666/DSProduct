@@ -17,20 +17,10 @@ import java.util.List;
 public class MyUserDetails implements UserDetails {
     private String username;
     private String password;
-
+    private Long userId;
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
-    }
-
-    @Override
-    public String getPassword() {
-        return this.password;
-    }
-
-    @Override
-    public String getUsername() {
-        return this.username;
     }
 
     @Override

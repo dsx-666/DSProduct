@@ -41,7 +41,7 @@ public class SpringSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth ->
                         auth
-                        .requestMatchers("/user/register").permitAll()
+                        .requestMatchers("/user/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 // 当前过滤链使用这个 AuthenticationManager 作为认证管理器
@@ -53,7 +53,7 @@ public class SpringSecurityConfig {
                 )
                 .addFilterBefore(
                         jwtFilter,
-                        PasswordAuthenticationFilter.class
+                        UsernamePasswordAuthenticationFilter.class
                 )
                 // 异常捕获并且处理
                 .exceptionHandling(

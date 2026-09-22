@@ -19,6 +19,7 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 //@NoArgsConstructor
+// OncePerRequestFilter用于过滤器必须会经过这个过滤器
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;

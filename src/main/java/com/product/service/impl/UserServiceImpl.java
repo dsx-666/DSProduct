@@ -1,6 +1,8 @@
 package com.product.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.product.MyException.BusinessException;
+import com.product.pojo.JwtUtil;
+import com.product.pojo.MyUserDetails;
 import com.product.pojo.dto.UserDto;
 import com.product.pojo.entity.User;
 import com.product.enums.Code;
@@ -16,6 +18,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
     @Override
     // 事务同成功同失败
     @Transactional(rollbackFor = Exception.class)
@@ -101,8 +105,11 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException(e);
 
         }
+        MyUserDetails userDetails = (MyUserDetails) authentication.getPrincipal();
         LoginUserVo loginUserVo = LoginUserVo.builder()
-                .username(authentication.getPrincipal().toString())
+                .username(userDetails.getUsername())
+                .jwtToken(jwtUtil.generateToken(userDetails.getUserId(),
+                        userDetails.getUsername()))
                 .build();
         return new Result<>(Code.Success.getCode(),
                 Code.Success.getDesc(),

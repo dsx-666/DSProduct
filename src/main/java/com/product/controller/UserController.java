@@ -25,9 +25,8 @@ public class UserController {
             UserDto userDto
     ) {
         return userService.registerUser(userDto);
-
     }
-    @GetMapping("/login")
+    @PostMapping("/login")
     public Result<LoginUserVo> login(
             @RequestBody
             @Validated(CheckGroup.class)

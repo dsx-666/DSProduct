@@ -2,7 +2,7 @@ server:
   port: 8080
 
 jwt:
-  secret: "dsx666"
+  secret: dsxSuperSecretKeyForHS256Algorithm66
   expire: 3600000
 
 spring:
