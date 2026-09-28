@@ -1,4 +1,4 @@
-package com.product.group;
+package com.product.group.user;
 
 public interface CreateGroup {
 }

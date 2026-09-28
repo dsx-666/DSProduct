@@ -17,7 +17,8 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
     // 获取参数校验的报错（为了让前端可以精确识别）
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Result<Map<String, String>> handleValidException(MethodArgumentNotValidException e) {
+    public Result<Map<String, String>> handleValidException(
+            MethodArgumentNotValidException e) {
         // 收集所有字段错误，转成 Map
         Map<String, String> errors = e.getBindingResult()
                 // 获取实例
@@ -29,8 +30,11 @@ public class GlobalExceptionHandler {
                         FieldError::getField,           // key: 字段名
                         //FieldError::getDefaultMessage,   value: 错误提示
                         // 如果说返回一个null就是字符串"" lambada的用法
-                        error -> Optional.ofNullable(error.getDefaultMessage()).orElse(""),
-                        (v1, v2) -> v1                  // 如果同一字段有多个错误，取第一个
+                        error -> Optional.ofNullable(error
+                                .getDefaultMessage())
+                                .orElse(""),
+                        // 如果同一字段有多个错误，取第一个
+                        (v1, v2) -> v1
                 ));
         return Result.error(Code.ParamError.getCode(),Code.ParamError.getDesc(), errors);
     }

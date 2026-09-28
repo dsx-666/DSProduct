@@ -1,7 +1,7 @@
 package com.product.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.product.pojo.MyUserDetails;
-import com.product.pojo.entity.User;
+import com.product.pojo.other.MyUserDetails;
+import com.product.pojo.po.User;
 import com.product.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,7 +20,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String username)
     throws UsernameNotFoundException {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getUsername, username);
+        wrapper.eq(User::getUserName, username);
         User user = userMapper.selectOne(wrapper);
         if (user == null) {
             throw new UsernameNotFoundException("用户名不存在");
@@ -29,7 +29,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         return MyUserDetails.builder()
                 .username(username)
                 .password(user.getPassword())
-                .userId(user.getId())
+                .userId(user.getUserId())
                 .build();
     }
 }

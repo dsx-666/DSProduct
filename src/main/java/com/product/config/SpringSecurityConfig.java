@@ -19,7 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SpringSecurityConfig {
     // 认证管理器，可以通过依赖注入来加入provide
     @Bean
-    public AuthenticationManager authenticationManager(
+    public AuthenticationManager passwordAuthenticationManager(
             PasswordAuthenticationProvider passwordAuthenticationProvider)
             throws Exception {
         return new ProviderManager(passwordAuthenticationProvider);
@@ -29,28 +29,28 @@ public class SpringSecurityConfig {
     // 构造链路（chain）
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            AuthenticationManager authenticationManager,
+//            AuthenticationManager authenticationManager,
             MyAuthenticationEntryPoint entryPoint,
             JwtAuthenticationFilter jwtFilter
     ) throws Exception {
-        PasswordAuthenticationFilter filter = new
-                PasswordAuthenticationFilter();
-        // 必须把这个filter对应的manager设置，他不会自动获取这个
-        filter.setAuthenticationManager(authenticationManager);
+//        PasswordAuthenticationFilter filter = new
+//                PasswordAuthenticationFilter();
+//        // 必须把这个filter对应的manager设置，他不会自动获取这个，这个是为了filter使用manager
+//        filter.setAuthenticationManager(authenticationManager);
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth ->
                         auth
-                        .requestMatchers("/user/**").permitAll()
+                        .requestMatchers("/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 // 当前过滤链使用这个 AuthenticationManager 作为认证管理器
-                .authenticationManager(authenticationManager)
+//                .authenticationManager(authenticationManager)
                 // 必须把这个Filter加到链路里面，这个Filter会getManage来获取你定义的manager
-                .addFilterAt(
-                        filter,
-                        UsernamePasswordAuthenticationFilter.class
-                )
+//                .addFilterAt(
+//                        filter,
+//                        UsernamePasswordAuthenticationFilter.class
+//                )
                 .addFilterBefore(
                         jwtFilter,
                         UsernamePasswordAuthenticationFilter.class

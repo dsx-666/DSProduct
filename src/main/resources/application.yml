@@ -5,10 +5,19 @@ jwt:
   secret: dsxSuperSecretKeyForHS256Algorithm66
   expire: 3600000
 
-spring:
+business:
+  time: "2025-11-15"
+  start-time: "2024-01-01"
 
+mybatis-plus:
+  global-config:
+    db-config:
+      column-format: "`%s`"
+      table-format: "`%s`"
+
+spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/product?serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/DSProduct?serverTimezone=Asia/Shanghai
     username: root
     password: 123589674xing
     driver-class-name: com.mysql.cj.jdbc.Driver

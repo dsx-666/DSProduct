@@ -1,16 +1,12 @@
-package com.product.pojo;
+package com.product.pojo.other;
 
 import com.product.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 @Data
 @RequiredArgsConstructor
@@ -29,12 +25,18 @@ public class JwtUtil {
         Date expiration = new Date(now.getTime() + jwtProperties.getExpire());
 
         return Jwts.builder()
-                .subject(String.valueOf(userId))              // 设置 JWT 的 "sub" 字段，通常放用户ID
-                .claim("username", username)               // 自定义字段，把用户名也塞进 payload
-                .issuedAt(now)                                // 设置签发时间（iat）
-                .expiration(expiration)                       // 设置过期时间（exp）
-                .signWith(jwtProperties.getKey())                                // 用密钥签名，防止被篡改
-                .compact();                                   // 最终生成 "xxx.yyy.zzz" 格式的 Token 字符串
+                // 设置 JWT 的 "sub" 字段，通常放用户ID
+                .subject(String.valueOf(userId))
+                // 自定义字段，把用户名也塞进 payload
+                .claim("username", username)
+                // 设置签发时间（iat）
+                .issuedAt(now)
+                // 设置过期时间（exp）
+                .expiration(expiration)
+                // 用密钥签名，防止被篡改
+                .signWith(jwtProperties.getKey())
+                // 最终生成 "xxx.yyy.zzz" 格式的 Token 字符串
+                .compact();
 
 
     }
@@ -44,10 +46,14 @@ public class JwtUtil {
     public Claims parseToken(String token) {
 
         return Jwts.parser()
-                .verifyWith(jwtProperties.getKey())           // 设置验签密钥，用于验证签名是否合法
-                .build()                   // 构建 JWT 解析器实例
-                .parseSignedClaims(token)  // 解析 Token 字符串，并自动验签和校验过期时间
-                .getPayload();             // 获取解析后的 Payload（载荷）内容
+                // 设置验签密钥，用于验证签名是否合法
+                .verifyWith(jwtProperties.getKey())
+                // 构建 JWT 解析器实例
+                .build()
+                // 解析 Token 字符串，并自动验签和校验过期时间
+                .parseSignedClaims(token)
+                // 获取解析后的 Payload（载荷）内容
+                .getPayload();
     }
     /**
      * 获取 userId
