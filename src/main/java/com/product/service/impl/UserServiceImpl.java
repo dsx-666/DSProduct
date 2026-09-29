@@ -2,17 +2,18 @@ package com.product.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.product.MyException.BusinessException;
 import com.product.config.BusinessProperties;
+import com.product.pojo.dto.request.UserRequest;
+import com.product.pojo.dto.response.UserResponse;
 import com.product.pojo.other.JwtUtil;
 import com.product.pojo.other.MyUserDetails;
-import com.product.pojo.dto.UserDto;
 import com.product.enums.Role;
+import com.product.pojo.other.Scope;
 import com.product.pojo.po.User;
 import com.product.enums.Code;
 import com.product.mapper.UserMapper;
 import com.product.enums.UserType;
 import com.product.security.token.PasswordAuthenticationToken;
 import com.product.service.UserService;
-import com.product.pojo.vo.UserVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -37,19 +38,19 @@ public class UserServiceImpl implements UserService {
     @Override
     // 事务同成功同失败
     @Transactional(rollbackFor = Exception.class)
-    public UserVo registerUser(UserDto registerUserDto) {
+    public UserResponse registerUser(UserRequest registerUserDto) {
         // 对验证密码进行校验
         if(!registerUserDto.getPassword().
                 equals(registerUserDto.getConfirmPassword())) {
             throw new BusinessException(Code.SameError.getCode(),
                     "验证密码"+Code.SameError.getDesc());
         }
-        // 对用户名称唯一性进行判断
+        // 对邮箱唯一性进行判断
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getUserName, registerUserDto.getUserName());
+        wrapper.eq(User::getEmail, registerUserDto.getEmail());
         if(userMapper.exists(wrapper)) {
             throw new BusinessException(Code.UniqueError.getCode(),
-                    "用户昵称"+ Code.UniqueError.getDesc());
+                    "邮箱"+ Code.UniqueError.getDesc());
         }
         // 创建user 实体类
         User user = User.builder()
@@ -62,35 +63,46 @@ public class UserServiceImpl implements UserService {
                 .role(Role.NORMAL_USER)
                 .userType(UserType.NEW_USER)
                 .signupDate(businessProperties.getTime())
+                .brand(null)
                 .build();
         // 插入数据库
         try {
             userMapper.insert(user);
         } catch (DuplicateKeyException e) {
             throw new BusinessException(Code.UniqueError.getCode(),
-                    "用户昵称" + Code.UniqueError.getDesc());
+                    "邮箱" + Code.UniqueError.getDesc());
         }
         // 返回给前端数据
 
-        return UserVo.builder()
+        return UserResponse.builder()
                 .userName(user.getUserName())
-                .city(user.getCity())
-                .gender(user.getGender())
+                .userId(user.getUserId())
+                .createTime(user.getSignupDate())
+                .role(user.getRole())
+                .brand(user.getBrand())
                 .email(user.getEmail())
                 .jwtToken(jwtUtil.generateToken(
                         user.getUserId(),
-                        user.getUserName()
+                        user.getEmail()
                 ))
+                .scope(
+                        Scope.builder()
+                                .mode("OWN")
+                                .allowedBrands(null)
+                                .canManageUsers(false)
+                                .canViewFullOrder(true)
+                                .build()
+                )
                 .build();
 
     }
     // 利用AuthenticationManager来进行验证
     @Override
-    public UserVo loginUser(UserDto loginUserDto) {
+    public UserResponse loginUser(UserRequest loginUserDto) {
 
         PasswordAuthenticationToken token =
                 new PasswordAuthenticationToken(
-                        loginUserDto.getUserName(),
+                        loginUserDto.getEmail(),
                         loginUserDto.getPassword()
                 );
         // 捕获异常
@@ -117,10 +129,15 @@ public class UserServiceImpl implements UserService {
 
         }
         MyUserDetails userDetails = (MyUserDetails) authentication.getPrincipal();
-        return UserVo.builder()
+        return UserResponse.builder()
                 .userName(userDetails.getUsername())
-                .jwtToken(jwtUtil.generateToken(userDetails.getUserId(),
+                .jwtToken(jwtUtil.generateToken(userDetails.getUser().getUserId(),
                         userDetails.getUsername()))
+                .email(userDetails.getUser().getEmail())
+                .userId(userDetails.getUser().getUserId())
+                .role(userDetails.getUser().getRole())
+                .brand(userDetails.getUser().getBrand())
+                .createTime(userDetails.getUser().getSignupDate())
                 .build();
 
     }

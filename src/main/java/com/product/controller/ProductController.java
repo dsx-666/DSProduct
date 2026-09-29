@@ -1,5 +1,6 @@
 package com.product.controller;
 
+import com.product.enums.ProductCategory;
 import com.product.pojo.vo.Result;
 import com.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,7 @@ import java.util.List;
 public class ProductController {
     private final ProductService productService;
     @GetMapping("/categories")
-    public Result<List<String>> getCategories() {
+    public Result<List<ProductCategory>> getCategories() {
         // productService.getCategories()返回的是一个List<String>
         return Result.success(productService
                 .getCategories());

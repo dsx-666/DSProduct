@@ -18,4 +18,11 @@ public class QueryOrderListResult {
     private String userName;
     private String payMethod;
     private LocalDateTime createTime;
+    private Long userId;
+    private Double originalPrice;
+    private Double visiblePrice;
+    private Double matchedAmount;
+    // 这个就是为了后续查看详细接口返回的内容
+    private String contentScope;
+//    private String
 }

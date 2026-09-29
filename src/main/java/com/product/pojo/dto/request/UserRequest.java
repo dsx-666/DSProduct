@@ -1,4 +1,4 @@
-package com.product.pojo.dto;
+package com.product.pojo.dto.request;
 
 import com.product.group.user.CheckGroup;
 import com.product.group.user.CreateGroup;
@@ -8,26 +8,34 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class UserDto {
-    @NotBlank(message = "用户名不能为空",
+public class UserRequest {
+    @NotBlank(message = "验证密码不能为空",
             groups = {
-                CreateGroup.class,
-                CheckGroup.class
+                    CreateGroup.class
             }
     )
-    @Pattern(
-            regexp = "^[a-zA-Z][a-zA-Z0-9_ ]{5,30}$",
-            message = "用户名必须以字母开头，长度6-31位，只能包含字母、数字、下划线和空格",
+    private String confirmPassword;
+
+    @NotBlank(message = "邮箱不能为空",
             groups = {
                     CreateGroup.class,
                     CheckGroup.class
             }
     )
-    private String userName;
+    @Pattern(
+            regexp = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$",
+            message = "邮箱格式不正确",
+            groups = {
+                    CreateGroup.class,
+                    CheckGroup.class
+            }
+    )
+    private String email;
 
     @NotBlank(message = "密码不能为空",
             groups = {
@@ -43,18 +51,13 @@ public class UserDto {
             }
     )
     private String password;
-
-    @NotBlank(message = "验证密码不能为空",
-            groups = {
-                    CreateGroup.class
-            }
+    @NotBlank(
+            groups = {CreateGroup.class},
+            message = "用户昵称不能为空"
     )
-    private String confirmPassword;
-
-    private String email;
+    private String userName;
 
     private String city;
 
     private String gender;
-
 }

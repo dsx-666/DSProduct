@@ -1,6 +1,7 @@
 package com.product.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.product.enums.ProductCategory;
 import com.product.mapper.ProductMapper;
 import com.product.pojo.bo.ProductBo;
 import com.product.pojo.po.Product;
@@ -24,10 +25,12 @@ public class ProductServiceImpl implements ProductService {
         return productMapper.selectObjs(wrapper);
     }
     @Override
-    public List<String> getCategories() {
-        return selectCategories().stream()
-                        .filter(Objects::nonNull)
-                        .map(Object::toString)
+    public List<ProductCategory> getCategories() {
+
+        return selectCategories()
+                .stream()
+                .map(Object::toString)
+                .map(ProductCategory::fromValue)
                         .toList();
     }
 }

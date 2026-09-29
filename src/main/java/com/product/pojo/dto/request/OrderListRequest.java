@@ -1,24 +1,22 @@
 package com.product.pojo.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-public class OrderListRequest {
-    private LocalDate startTime;
-    private LocalDate endTime;
+@SuperBuilder
+public class OrderListRequest extends FilterRequest{
+
     private List<String> statuses;
     private String keyWord;
-
     @NotBlank(message = "必须要有对应页码才可以查询具体第几页")
     private Long page;
     @NotBlank(message = "必须要有每页条数才可以进行分页查询")

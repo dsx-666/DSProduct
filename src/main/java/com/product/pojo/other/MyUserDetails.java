@@ -1,5 +1,6 @@
 package com.product.pojo.other;
 
+import com.product.pojo.po.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +18,8 @@ import java.util.List;
 public class MyUserDetails implements UserDetails {
     private String username;
     private String password;
-    private Long userId;
+    private User user;
+    private Scope scope;
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();

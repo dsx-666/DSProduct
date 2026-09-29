@@ -12,6 +12,7 @@ public interface OrderService {
             OrderListRequest orderListRequest);
     List<Object> selectStatus();
 
-    OrderKpiResponse selectOrderKpi(KpiAnalysisRequest kpiAnalysisRequest);
+    OrderKpiResponse selectOrderKpi(
+            KpiAnalysisRequest kpiAnalysisRequest);
 
 }

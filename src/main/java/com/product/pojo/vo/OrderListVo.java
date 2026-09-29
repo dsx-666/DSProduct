@@ -12,7 +12,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderListVo {
+    FilterVo filters;
     private List<QueryOrderListResult> orderList;
+    private String keyWord;
     private Long total;
     private Long pageNum;
     private Long pageSize;

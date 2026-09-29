@@ -43,14 +43,14 @@ public class OrderController {
                         .build()
         );
     }
-    @GetMapping("/order/kpi")
-    public Result<OrderKpiVo> selectOrderKpiInfo(
-            KpiAnalysisRequest kpiAnalysisRequest) {
-        OrderListResponse orderListResponse = orderService.
-
-
-        return null;
-
-    }
+//    @GetMapping("/order/kpi")
+//    public Result<OrderKpiVo> selectOrderKpiInfo(
+//            KpiAnalysisRequest kpiAnalysisRequest) {
+//        OrderListResponse orderListResponse = orderService.
+//
+//
+//        return null;
+//
+//    }
 
 }

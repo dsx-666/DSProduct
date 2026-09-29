@@ -37,4 +37,6 @@ public class User {
     private Role role;
     @TableField("email")
     private String email;
+    @TableField("brand")
+    private String brand;
 }

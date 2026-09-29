@@ -20,7 +20,7 @@ public class JwtUtil {
      * 生成 JWT
      */
     public String generateToken(Long userId, String username) {
-
+        // 注意这个username是业务逻辑并非与实际的username相关
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtProperties.getExpire());
 
