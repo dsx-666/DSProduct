@@ -1,4 +1,4 @@
-package com.product.pojo.vo;
+package com.product.pojo.other;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -14,11 +14,12 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FilterVo {
+public class Filter {
     LocalDate startTime;
     LocalDate endTime;
     @JsonProperty("category")
     List<String> categories;
-    List<String> brand;
+    @JsonProperty("brand")
+    List<String> brands;
     List<String> statuses;
 }

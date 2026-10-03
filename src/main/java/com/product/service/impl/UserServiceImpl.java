@@ -2,12 +2,13 @@ package com.product.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.product.MyException.BusinessException;
 import com.product.config.BusinessProperties;
+import com.product.converter.UserConverter;
 import com.product.pojo.dto.request.UserRequest;
 import com.product.pojo.dto.response.UserResponse;
 import com.product.pojo.other.JwtUtil;
 import com.product.pojo.other.MyUserDetails;
 import com.product.enums.Role;
-import com.product.pojo.other.Scope;
+import com.product.pojo.vo.Scope;
 import com.product.pojo.po.User;
 import com.product.enums.Code;
 import com.product.mapper.UserMapper;
@@ -85,14 +86,7 @@ public class UserServiceImpl implements UserService {
                         user.getUserId(),
                         user.getEmail()
                 ))
-                .scope(
-                        Scope.builder()
-                                .mode("OWN")
-                                .allowedBrands(null)
-                                .canManageUsers(false)
-                                .canViewFullOrder(true)
-                                .build()
-                )
+                .scope(UserConverter.toScope(user))
                 .build();
 
     }
@@ -130,13 +124,14 @@ public class UserServiceImpl implements UserService {
         }
         MyUserDetails userDetails = (MyUserDetails) authentication.getPrincipal();
         return UserResponse.builder()
-                .userName(userDetails.getUsername())
+                .userName(userDetails.getUser().getUserName())
                 .jwtToken(jwtUtil.generateToken(userDetails.getUser().getUserId(),
                         userDetails.getUsername()))
                 .email(userDetails.getUser().getEmail())
                 .userId(userDetails.getUser().getUserId())
                 .role(userDetails.getUser().getRole())
                 .brand(userDetails.getUser().getBrand())
+                .scope(userDetails.getScope())
                 .createTime(userDetails.getUser().getSignupDate())
                 .build();
 

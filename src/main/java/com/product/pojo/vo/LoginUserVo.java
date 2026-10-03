@@ -3,7 +3,6 @@ package com.product.pojo.vo;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.product.enums.Role;
-import com.product.pojo.other.Scope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,7 +16,7 @@ import java.time.LocalDate;
 @Builder
 public class LoginUserVo {
 
-    private User user;
+    private TempUser user;
 
     private String JwtToken;
 
@@ -26,7 +25,7 @@ public class LoginUserVo {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class User{
+    public static class TempUser{
         private String email;
         private String userName;
         private LocalDate CreateTime;

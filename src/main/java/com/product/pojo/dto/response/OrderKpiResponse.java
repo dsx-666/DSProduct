@@ -5,14 +5,16 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrderKpiResponse {
-    private double totalSalesAmount;
+    private BigDecimal totalSalesAmount;
     private Long uniqueOrderCount;
-    private double averageOrderValue;
+    private BigDecimal averageOrderValue;
     private Long hotProductCount;
-    private double hotProductAmount;
+    private BigDecimal hotProductAmount;
 }

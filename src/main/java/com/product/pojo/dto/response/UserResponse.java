@@ -1,7 +1,7 @@
 package com.product.pojo.dto.response;
 
 import com.product.enums.Role;
-import com.product.pojo.other.Scope;
+import com.product.pojo.vo.Scope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

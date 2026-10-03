@@ -1,11 +1,13 @@
 package com.product.pojo.other;
 
 import com.product.pojo.po.User;
+import com.product.pojo.vo.Scope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
@@ -14,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-// TODO:后续可能会优化（增加参数已经过期验证等）
+// TODO:后续可能会在getAuthorities增加细分权限
 public class MyUserDetails implements UserDetails {
     private String username;
     private String password;
@@ -22,7 +24,9 @@ public class MyUserDetails implements UserDetails {
     private Scope scope;
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        GrantedAuthority authority =
+                new SimpleGrantedAuthority("ROLE_"+user.getRole().getRole());
+        return List.of(authority);
     }
 
     @Override

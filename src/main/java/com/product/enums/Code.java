@@ -12,7 +12,7 @@ public enum Code{
     SameError(20004,"不一致"),
     RegisterError(20005,"用户未注册"),
     LoginError(20006,"用户名或密码错误"),
-
+    AccessDeniedError(403,"无权访问")
     ;
 
     private final Integer code;

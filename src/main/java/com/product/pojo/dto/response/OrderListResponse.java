@@ -1,6 +1,7 @@
 package com.product.pojo.dto.response;
 
-import com.product.pojo.other.QueryOrderListResult;
+import com.product.pojo.bo.QueryOrderListResult;
+import com.product.pojo.vo.Scope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,4 +16,5 @@ import java.util.List;
 public class OrderListResponse {
     private List<QueryOrderListResult> orderList;
     private Long total;
+    private Scope scope;
 }

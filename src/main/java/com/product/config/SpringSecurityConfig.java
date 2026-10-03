@@ -41,9 +41,17 @@ public class SpringSecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth ->
                         auth
-                        .requestMatchers("/**").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/auth/register",
+                                "/api/auth/login")
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated()
                 )
+                // 不使用 Spring Security 自带的网页登录和 HTTP Basic 登录
+                // HTTP Basic 类似于token（token还需其他内容而这个只有账号密码）传递信息
+                // 每次拿账号密码证明身份
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
                 // 当前过滤链使用这个 AuthenticationManager 作为认证管理器
 //                .authenticationManager(authenticationManager)
                 // 必须把这个Filter加到链路里面，这个Filter会getManage来获取你定义的manager
