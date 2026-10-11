@@ -65,10 +65,21 @@ public class QueryOrderListResult {
             BigDecimal visibleAmount) {
         // BigDecimal保留两位小数
         this.amount = this.amount.setScale(2, RoundingMode.HALF_UP);
-        this.matchedAmount = this.matchedAmount.setScale(2, RoundingMode.HALF_UP);
         this.hasDetail = this.productCount>0;
+        if(!this.hasDetail) {
+            if (scope.getMode().equals("ALL")){
+                this.contentScope = "FULL";
+            }else{
+                this.contentScope = "BRAND";
+                this.originalPrice = null;
+                this.amount = null;
+                this.hasAmountDifference = null;
+            }
+            return this;
+        }
         if (scope.getMode().equals("ALL")){
             this.contentScope = "FULL";
+            this.matchedAmount = this.matchedAmount.setScale(2, RoundingMode.HALF_UP);
             this.originalPrice = originalAmount.setScale(2, RoundingMode.HALF_UP);
             this.visiblePrice = visibleAmount.setScale(2, RoundingMode.HALF_UP);
             // 这是BigDecimal的运算操作
@@ -78,6 +89,7 @@ public class QueryOrderListResult {
                     .compareTo(new BigDecimal("0.01")) > 0;
         }else{
             this.contentScope = "BRAND";
+            this.matchedAmount = this.matchedAmount.setScale(2, RoundingMode.HALF_UP);
             this.originalPrice = null;
             this.visiblePrice = visibleAmount.setScale(2, RoundingMode.HALF_UP);
             this.hasAmountDifference = null;
@@ -89,7 +101,7 @@ public class QueryOrderListResult {
             this.productSummary = productName[0]+"、"+productName[1]+"等";
 //            log.info(this.productSummary);
         }
-        log.info(this.productSummary);
+//        log.info(this.productSummary);
         return this;
     }
 

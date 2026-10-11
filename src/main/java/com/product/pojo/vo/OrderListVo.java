@@ -1,7 +1,7 @@
 package com.product.pojo.vo;
 
 import com.product.pojo.bo.QueryOrderListResult;
-import com.product.pojo.other.Filter;
+import com.product.pojo.dto.request.Filter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

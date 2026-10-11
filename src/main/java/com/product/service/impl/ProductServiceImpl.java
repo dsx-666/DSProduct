@@ -18,16 +18,8 @@ import java.util.stream.Collectors;
 public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
     @Override
-    public List<Object> selectCategories() {
-        LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
-        wrapper.select(Product::getCategory)
-                .groupBy(Product::getCategory);
-        return productMapper.selectObjs(wrapper);
-    }
-    @Override
     public List<ProductCategory> getCategories() {
-
-        return selectCategories()
+        return productMapper.selectCategories()
                 .stream()
                 .map(Object::toString)
                 .map(ProductCategory::fromValue)

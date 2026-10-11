@@ -1,6 +1,7 @@
 package com.product.controller;
+import com.product.pojo.dto.request.Filter;
 import com.product.pojo.dto.request.OrderListRequest;
-import com.product.pojo.dto.request.KpiAnalysisRequest;
+import com.product.pojo.dto.response.OrderKpiResponse;
 import com.product.pojo.dto.response.OrderListResponse;
 import com.product.pojo.other.MyUserDetails;
 import com.product.pojo.vo.OrderKpiVo;
@@ -11,9 +12,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.concurrent.ExecutionException;
 
 @RequiredArgsConstructor
 /*
@@ -36,7 +38,7 @@ public class OrderController {
      */
     public Result<OrderListVo> selectOrdersInfo(
             @AuthenticationPrincipal MyUserDetails myUserDetails,
-            @RequestBody OrderListRequest orderListRequest) {
+            OrderListRequest orderListRequest) {
         OrderListResponse orderListResponse = orderService
                 .selectOrderInfo(orderListRequest,myUserDetails.getUser());
 
@@ -52,14 +54,29 @@ public class OrderController {
                         .build()
         );
     }
-//    @GetMapping("/order/kpi")
-//    public Result<OrderKpiVo> selectOrderKpiInfo(
-//            KpiAnalysisRequest kpiAnalysisRequest) {
-//        OrderListResponse orderListResponse = orderService.
-//
-//
-//        return null;
-//
-//    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @GetMapping("/order/kpi")
+    public Result<OrderKpiVo> selectOrderKpiInfo(
+            @AuthenticationPrincipal MyUserDetails myUserDetails,
+            Filter filter) throws ExecutionException, InterruptedException {
+        OrderKpiResponse orderKpiResponse = orderService.selectOrderKpi(filter,myUserDetails.getUser());
+
+
+        return Result.success(
+                OrderKpiVo.builder()
+                        .amountMismatchOrderCount(orderKpiResponse.getAmountMismatchOrderCount())
+                        .totalSalesAmount(orderKpiResponse.getTotalSalesAmount())
+                        .averageOrderValue(orderKpiResponse.getAverageOrderValue())
+                        .missingDetailOrderCount(orderKpiResponse.getMissingDetailOrderCount())
+                        .uniqueOrderCount(orderKpiResponse.getUniqueOrderCount())
+                        .hotProductCount(orderKpiResponse.getHotProductCount())
+                        .filters(filter)
+                        .scope(orderKpiResponse.getScope())
+                        .soldProductCount(orderKpiResponse.getSoldProductCount())
+                        .build()
+        );
+
+    }
 
 }

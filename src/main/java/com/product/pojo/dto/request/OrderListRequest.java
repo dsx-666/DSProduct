@@ -1,8 +1,10 @@
 package com.product.pojo.dto.request;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
-import com.product.pojo.other.Filter;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 
 @Data
@@ -18,4 +20,20 @@ public class OrderListRequest {
     @NotBlank(message = "必须要有每页条数才可以进行分页查询")
     private Long num;
     private Long offset;
+    public void setCategory(List<String> categories) {
+        filters.setCategories(categories);
+    }
+
+    public void setStatuses(List<String> statuses) {
+        filters.setStatuses(statuses);
+    }
+    public void setStartTime(LocalDate startTime) {
+        filters.setStartTime(startTime);
+    }
+    public void setEndTime(LocalDate endTime) {
+        filters.setEndTime(endTime);
+    }
+    public void setBrand(List<String> brands) {
+        filters.setBrands(brands);
+    }
 }
