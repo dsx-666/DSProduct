@@ -35,15 +35,7 @@ public class OrderServiceImpl implements OrderService {
             User user) {
         // 参数业务校验(防止后续的缓存击穿)
         filterValidator.validate(orderListRequest.getFilters());
-        // 权限业务校验
         Scope scope = UserConverter.toScope(user);
-        if(!scope.getAllowedBrands().isEmpty()){
-            Set<String> brand = new HashSet<>(scope.getAllowedBrands());
-            if(!brand.containsAll(orderListRequest.getFilters().getBrands())){
-                throw new BusinessException(Code.AccessDeniedError.getCode(),
-                        Code.AccessDeniedError.getDesc());
-            }
-        }
         /*
         TODO: 以后项目大了可以尝试转成Bo进行业务逻辑校验，这个OrderBo也可以加入ProductBo
          并且可以再封装一个方法调用属性的方法省的去.属性.方法
@@ -92,18 +84,20 @@ public class OrderServiceImpl implements OrderService {
         for(Map<String,Object> map : list){
             // 订单总数
             temp.setUniqueOrderCount(temp.getUniqueOrderCount() + 1);
+            // 用于计算差额订单
             BigDecimal amount = new BigDecimal(map.get("amount").toString())
                     .setScale(2, RoundingMode.HALF_UP);
-            // 总金额
-            temp.setTotalSalesAmount(temp.getTotalSalesAmount()
-                    .add(amount)
-                    .setScale(2, RoundingMode.HALF_UP));
+
             if(map.get("matchedAmount")==null){
                 // 缺明细订单
                 temp.setMissingDetailOrderCount(temp.getMissingDetailOrderCount() + 1);
             }else{
                 BigDecimal matchedAmount = new BigDecimal(map.get("matchedAmount").toString())
                         .setScale(2, RoundingMode.HALF_UP);
+                // 总金额
+                temp.setTotalSalesAmount(temp.getTotalSalesAmount()
+                        .add(matchedAmount)
+                        .setScale(2, RoundingMode.HALF_UP));
                 // 差额订单
                 BigDecimal difference = amount.subtract(matchedAmount).abs();
                 if (difference.compareTo(new BigDecimal("0.01")) > 0) {
@@ -169,14 +163,23 @@ public class OrderServiceImpl implements OrderService {
             ExecutionException,
             InterruptedException {
         Scope scope = UserConverter.toScope(user);
+        System.out.println("startTime = " + filter.getStartTime());
+        System.out.println("endTime = " + filter.getEndTime());
+        System.out.println("brands = " + filter.getBrands());
+        System.out.println("categories = " + filter.getCategories());
+        System.out.println("statuses = " + filter.getStatuses());
         List<Map<String,Object>> list = orderMapper.selectOrderKpi(filter);
+        log.info(String.valueOf(list.size()));
         OrderKpiResponse result = OrderKpiResponse.builder()
                 .amountMismatchOrderCount((long) 0)
                 .totalSalesAmount(BigDecimal.ZERO)
                 .uniqueOrderCount((long) 0)
                 .missingDetailOrderCount((long) 0)
+                .averageOrderValue(BigDecimal.ZERO)
+                .scope(scope)
                 .build();
         result =  parallelProcessor.processInParallel(list,4,this::processKpi,result,this::mergerKpi);
+        // 权限不够
         if(scope.getMode().equals("BRAND")){
             result.setMissingDetailOrderCount((long) 0);
             result.setAmountMismatchOrderCount(null);

@@ -53,21 +53,16 @@ public class MyParallelProcessor {
             );
         }
 
-        int taskCount = Math.min(threadCount, data.size());
 
-        int chunkSize =
-                (data.size() + taskCount - 1) / taskCount;
+
+        int taskCount = Math.min(threadCount, data.size());
 
         List<Future<A>> futures = new ArrayList<>();
 
-        // 1. 划分数据并提交任务
         for (int i = 0; i < taskCount; i++) {
 
-            int start = i * chunkSize;
-            int end = Math.min(
-                    start + chunkSize,
-                    data.size()
-            );
+            int start = i * data.size() / taskCount;
+            int end = (i + 1) * data.size() / taskCount;
 
             List<T> part = new ArrayList<>(
                     data.subList(start, end)
@@ -79,6 +74,7 @@ public class MyParallelProcessor {
 
             futures.add(future);
         }
+
 
         // 2. 获取每个任务的结果并累计合并
         A result = initialResult;

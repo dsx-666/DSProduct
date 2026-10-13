@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -38,7 +39,7 @@ public class OrderController {
      */
     public Result<OrderListVo> selectOrdersInfo(
             @AuthenticationPrincipal MyUserDetails myUserDetails,
-            OrderListRequest orderListRequest) {
+            @ModelAttribute OrderListRequest orderListRequest) {
         OrderListResponse orderListResponse = orderService
                 .selectOrderInfo(orderListRequest,myUserDetails.getUser());
 
@@ -56,13 +57,11 @@ public class OrderController {
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    @GetMapping("/order/kpi")
+    @GetMapping("/orders/kpi")
     public Result<OrderKpiVo> selectOrderKpiInfo(
             @AuthenticationPrincipal MyUserDetails myUserDetails,
-            Filter filter) throws ExecutionException, InterruptedException {
+            @ModelAttribute Filter filter) throws ExecutionException, InterruptedException {
         OrderKpiResponse orderKpiResponse = orderService.selectOrderKpi(filter,myUserDetails.getUser());
-
-
         return Result.success(
                 OrderKpiVo.builder()
                         .amountMismatchOrderCount(orderKpiResponse.getAmountMismatchOrderCount())

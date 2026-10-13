@@ -94,7 +94,7 @@ public interface OrderMapper extends BaseMapper<Order> {
     List<QueryOrderListResult> selectOrderList(OrderListRequest orderInfoRequest);
     @Select("""
         <script>
-            select count(*)
+            select count(distinct o.order_id)
             from `order` o left join `user` u on o.user_id = u.user_id
                 left join order_item oi on o.order_id = oi.order_id
                 left join product p on p.product_id = oi.product_id
@@ -231,9 +231,9 @@ public interface OrderMapper extends BaseMapper<Order> {
     @Select("""
         <script>
             select sum(oi.item_total) as matchedAmount,
-                   o.total_amount as amount
-            from `order` o left join `user` u on o.user_id = u.user_id
-                left join order_item oi on o.order_id = oi.order_id
+                   o.total_amount as amount,
+                   o.order_id as orderId
+            from `order` o left join order_item oi on o.order_id = oi.order_id
                 left join product p on p.product_id = oi.product_id
             <where>
                 o.order_date &gt;= #{startTime}
@@ -249,16 +249,6 @@ public interface OrderMapper extends BaseMapper<Order> {
                     >
                         #{status}
                     </foreach>
-                </if>
-                <if test="keyWord != null and keyWord != ''">
-                   AND EXISTS (
-                         SELECT 1
-                         FROM order_item oi_
-                         LEFT JOIN product p
-                             ON oi.product_id = p.product_id
-                         WHERE oi_.order_item_id = oi.order_item_id
-                           AND p.product_name LIKE CONCAT('%', #{keyWord}, '%')
-                     )
                 </if>
                 <if test="categories != null and !categories.isEmpty()">
                     AND p.category in

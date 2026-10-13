@@ -3,8 +3,8 @@ server:
 
 jwt:
   secret: dsxSuperSecretKeyForHS256Algorithm66
-  expire: 3600000
-
+  expire: 3600000000
+#  expire: 3600000
 business:
   time: "2025-11-15"
   start-time: "2024-01-01"
@@ -21,3 +21,10 @@ spring:
     username: root
     password: 123589674xing
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: 192.168.142.128
+      port: 6379
+      username: default
+      password: 123589674xing
+      database: 0

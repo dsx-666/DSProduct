@@ -28,11 +28,18 @@ public class Filter {
     @JsonProperty("category")
     @BindParam("category")
     List<String> categories;
-    @JsonProperty("brand")
     /*
     * 类似于JsonProperty
     * */
+    @JsonProperty("brand")
     @BindParam("brand")
     List<String> brands;
     List<String> statuses;
+    /*
+    * springmvc底层是通过set方法来注入这种传参数据的
+    *
+    * */
+    public void setBrand(List<String> brands) {
+        this.brands = brands;
+    }
 }
