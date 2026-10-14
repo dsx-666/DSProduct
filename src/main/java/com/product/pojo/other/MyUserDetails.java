@@ -1,7 +1,7 @@
 package com.product.pojo.other;
 
 import com.product.pojo.po.User;
-import com.product.pojo.vo.Scope;
+import com.product.pojo.bo.Scope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

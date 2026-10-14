@@ -4,6 +4,7 @@ import com.product.enums.Code;
 import com.product.pojo.vo.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -37,6 +38,11 @@ public class GlobalExceptionHandler {
                         (v1, v2) -> v1
                 ));
         return Result.error(Code.ParamError.getCode(),Code.ParamError.getDesc(), errors);
+    }
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public Result<Void> handleTypeMismatchException(
+            MethodArgumentTypeMismatchException e) {
+        return Result.error(Code.ParamError.getCode(),Code.ParamError.getDesc(),null);
     }
     // 自定义报错（前端可以利用报错码来更好地处理不同的错误）
     @ExceptionHandler(BusinessException.class)

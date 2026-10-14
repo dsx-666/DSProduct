@@ -2,7 +2,6 @@ package com.product.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.product.converter.UserConverter;
 import com.product.pojo.other.MyUserDetails;
-import com.product.pojo.vo.Scope;
 import com.product.pojo.po.User;
 import com.product.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;

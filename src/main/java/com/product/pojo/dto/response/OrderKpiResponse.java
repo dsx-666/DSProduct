@@ -1,12 +1,14 @@
 package com.product.pojo.dto.response;
 
-import com.product.pojo.vo.Scope;
+import com.product.pojo.bo.Scope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @Builder
@@ -36,5 +38,17 @@ public class OrderKpiResponse {
 
     private Scope scope;
 
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class OrderStatsResponse {
+        private Scope scope;
+        private List<LocalDate> dateList;
+        private List<LocalDate> periodStartList;
+        private List<LocalDate> periodEndList;
+        private List<BigDecimal> salesAmountList;
+        private List<Long> orderCountList;
+    }
 
 }

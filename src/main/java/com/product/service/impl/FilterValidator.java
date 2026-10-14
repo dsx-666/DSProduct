@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,11 +28,26 @@ public class FilterValidator {
     private final BusinessProperties businessProperties;
     public void validate(Filter filter) {
         // 定义null为业务默认
-        if(filter.getStartTime()==null){
-            filter.setStartTime(businessProperties.getStartTime());
+        if(filter.getBrands() == null){
+            filter.setBrands(List.of());
         }
+
+        if(filter.getCategories() == null){
+            filter.setCategories(List.of());
+        }
+
+        if(filter.getStatuses() == null){
+            filter.setStatuses(List.of());
+        }
+
         if(filter.getEndTime()==null){
             filter.setEndTime(businessProperties.getTime());
+        }
+        if(filter.getStartTime()==null){
+            filter.setStartTime(filter.getEndTime().minusDays(29));
+            if(filter.getStartTime().isBefore(businessProperties.getStartTime())){
+                filter.setStartTime(businessProperties.getStartTime());
+            }
         }
         if(filter.getEndTime()
                 .isBefore(filter.getStartTime()
@@ -41,23 +57,50 @@ public class FilterValidator {
             throw new BusinessException(Code.ParamError.getCode(),
                     Code.ParamError.getDesc()+":开始时间超出结束时间");
         }
+        if(filter.getStartTime().isBefore(businessProperties.getStartTime())
+                || filter.getEndTime().isAfter(businessProperties.getTime())){
+            throw new BusinessException(Code.ParamError.getCode(),
+                    Code.ParamError.getDesc()+":日期超出允许范围");
+        }
         // 种类参数
         if(filter.getCategories()!=null){
+            List<String> requestCategories = filter.getCategories()
+                    .stream()
+                    .map(String::trim)
+                    .distinct()
+                    .sorted()
+                    .toList();
             Set<String> categories = productMapper.selectCategories()
                     .stream()
                     .filter(Objects::nonNull)
                     .map(Object::toString)
                     .collect(Collectors.toCollection(HashSet::new));
             // set要快一些
-            if(!categories.containsAll(filter.getCategories())){
+            if(!categories.containsAll(requestCategories)){
                 throw new BusinessException(Code.ParamError.getCode()
                         ,Code.ParamError.getDesc()+":存在未知种类");
             }
-            filter.setCategories(filter
-                    .getCategories()
+            filter.setCategories(requestCategories);
+        }
+
+        // 品牌参数
+        if(filter.getBrands()!=null){
+            List<String> requestBrands = filter.getBrands()
                     .stream()
+                    .map(String::trim)
                     .distinct()
-                    .toList());
+                    .sorted()
+                    .toList();
+            Set<String> brands = productMapper.selectBrands()
+                    .stream()
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .collect(Collectors.toCollection(HashSet::new));
+            if(!brands.containsAll(requestBrands)){
+                throw new BusinessException(Code.ParamError.getCode()
+                        ,Code.ParamError.getDesc()+":存在未知品牌");
+            }
+            filter.setBrands(requestBrands);
         }
 
 

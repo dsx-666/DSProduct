@@ -17,4 +17,9 @@ public interface OrderService {
             Filter filter,
             User user) throws ExecutionException, InterruptedException;
 
+    OrderKpiResponse.OrderStatsResponse selectOrderStats(
+            Filter filter,
+            String granularity,
+            User user);
+
 }

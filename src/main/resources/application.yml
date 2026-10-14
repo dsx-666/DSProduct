@@ -6,7 +6,7 @@ jwt:
   expire: 3600000000
 #  expire: 3600000
 business:
-  time: "2025-11-15"
+  time: "2025-11-14"
   start-time: "2024-01-01"
 
 mybatis-plus:
