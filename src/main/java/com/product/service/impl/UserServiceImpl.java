@@ -8,7 +8,6 @@ import com.product.pojo.dto.response.UserResponse;
 import com.product.pojo.other.JwtUtil;
 import com.product.pojo.other.MyUserDetails;
 import com.product.enums.Role;
-import com.product.pojo.vo.Scope;
 import com.product.pojo.po.User;
 import com.product.enums.Code;
 import com.product.mapper.UserMapper;

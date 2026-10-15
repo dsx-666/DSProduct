@@ -1,7 +1,7 @@
 package com.product.pojo.dto.response;
 
 import com.product.pojo.bo.QueryOrderListResult;
-import com.product.pojo.vo.Scope;
+import com.product.pojo.bo.Scope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

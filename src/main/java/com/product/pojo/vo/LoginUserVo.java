@@ -3,6 +3,7 @@ package com.product.pojo.vo;
 
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.product.enums.Role;
+import com.product.pojo.bo.Scope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -6,7 +6,7 @@ import com.product.pojo.dto.request.Filter;
 import com.product.pojo.dto.request.OrderListRequest;
 import com.product.pojo.po.Order;
 import com.product.pojo.bo.QueryOrderListResult;
-import com.product.pojo.vo.Scope;
+import com.product.pojo.bo.Scope;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
@@ -282,4 +282,63 @@ public interface OrderMapper extends BaseMapper<Order> {
         </script>
     """)
     List<Map<String,Object>> selectOrderKpi(Filter filter);
+
+    @Select("""
+        <script>
+            select DATE(o.order_date) as orderDate,
+                   o.order_id as orderId,
+                   CASE
+                       WHEN COUNT(oi.order_item_id) = 0
+                           THEN ROUND(o.total_amount, 2)
+                       ELSE ROUND(SUM(ROUND(oi.item_total, 2)), 2)
+                   END as salesAmount
+            from `order` o left join order_item oi on o.order_id = oi.order_id
+                left join product p on p.product_id = oi.product_id
+            <where>
+                o.order_status = 'completed'
+                AND o.order_date &gt;= #{filter.startTime}
+                AND o.order_date &lt; DATE_ADD(#{filter.endTime}, INTERVAL 1 DAY)
+                <if test="filter.categories != null and !filter.categories.isEmpty()">
+                    AND p.category in
+                    <foreach
+                        collection="filter.categories"
+                        item="category"
+                        open="("
+                        separator=","
+                        close=")"
+                    >
+                        #{category}
+                    </foreach>
+                </if>
+                <if test="filter.brands != null and !filter.brands.isEmpty()">
+                    AND p.brand in
+                    <foreach
+                        collection="filter.brands"
+                        item="brand"
+                        open="("
+                        separator=","
+                        close=")"
+                    >
+                        #{brand}
+                    </foreach>
+                </if>
+                <if test="scope.mode == 'BRAND'">
+                    AND p.brand in
+                    <foreach
+                        collection="scope.allowedBrands"
+                        item="allowedBrand"
+                        open="("
+                        separator=","
+                        close=")"
+                    >
+                        #{allowedBrand}
+                    </foreach>
+                </if>
+            </where>
+            group by DATE(o.order_date),o.order_id,o.total_amount
+            order by orderDate asc,o.order_id asc
+        </script>
+    """)
+    List<Map<String,Object>> selectOrderStats(@Param("filter") Filter filter,
+                                              @Param("scope") Scope scope);
 }

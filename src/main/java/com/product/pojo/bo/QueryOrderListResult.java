@@ -1,5 +1,4 @@
 package com.product.pojo.bo;
-import com.product.pojo.vo.Scope;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

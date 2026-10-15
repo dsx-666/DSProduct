@@ -19,7 +19,7 @@ public class DateConverterConfig {
     @Bean
     public Converter<String, LocalDate> localDateConverter() {
         return source -> {
-            if (source == null || source.isBlank()) {
+            if (source.isBlank()) {
                 return null;
             }
             return LocalDate.parse(source, DATE_FORMATTER);

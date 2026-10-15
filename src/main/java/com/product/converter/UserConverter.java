@@ -1,7 +1,7 @@
 package com.product.converter;
 
 import com.product.pojo.po.User;
-import com.product.pojo.vo.Scope;
+import com.product.pojo.bo.Scope;
 
 import java.util.List;
 
@@ -15,7 +15,9 @@ public class UserConverter {
             scope.setCanManageUsers(false);
         }else if(user.getRole().getRole().equals("ADMIN")) {
             scope.setMode("BRAND");
-            scope.setAllowedBrands(List.of(user.getBrand()));
+            scope.setAllowedBrands(user.getBrand() == null || user.getBrand().isBlank()
+                    ? List.of()
+                    : List.of(user.getBrand()));
             scope.setCanViewFullOrder(false);
             scope.setCanManageUsers(false);
 

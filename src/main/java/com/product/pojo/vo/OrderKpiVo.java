@@ -1,5 +1,6 @@
 package com.product.pojo.vo;
 
+import com.product.pojo.bo.Scope;
 import com.product.pojo.dto.request.Filter;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 
 @Data
@@ -38,5 +41,20 @@ public class OrderKpiVo {
     private Filter filters;
 
     private Scope scope;
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class OrderStatsVo {
+        private Filter filters;
+        private Scope scope;
+        private String granularity;
+        private List<LocalDate> dateList;
+        private List<LocalDate> periodStartList;
+        private List<LocalDate> periodEndList;
+        private List<BigDecimal> salesAmountList;
+        private List<Long> orderCountList;
+    }
 
 }
