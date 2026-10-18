@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.product.enums.Role;
+import com.product.enums.AccountStatus;
 import com.product.enums.UserType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,4 +40,8 @@ public class User {
     private String email;
     @TableField("brand")
     private String brand;
+    @TableField("account_status")
+    private AccountStatus accountStatus;
+    @TableField("lock_version")
+    private Long lockVersion;
 }

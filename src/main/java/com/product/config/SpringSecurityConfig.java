@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
@@ -16,6 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @RequiredArgsConstructor
+@EnableMethodSecurity
 public class SpringSecurityConfig {
     // 认证管理器，可以通过依赖注入来加入provide
     @Bean
@@ -44,6 +46,8 @@ public class SpringSecurityConfig {
                         .requestMatchers("/api/auth/register",
                                 "/api/auth/login")
                         .permitAll()
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("SUPER_ADMIN")
                         .anyRequest()
                         .authenticated()
                 )

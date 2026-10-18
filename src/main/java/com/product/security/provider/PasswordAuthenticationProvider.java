@@ -34,7 +34,8 @@ public class PasswordAuthenticationProvider implements AuthenticationProvider {
         String password = myUserDetails.getPassword();
 
         if (
-                !passwordEncoder.matches(authentication
+                !myUserDetails.isEnabled()
+                || !passwordEncoder.matches(authentication
                 .getCredentials()
                 .toString(),
                 password)

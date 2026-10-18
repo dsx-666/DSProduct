@@ -17,8 +17,7 @@ import java.time.LocalDateTime;
 public class QueryOrderListResult {
     private Long orderId;
     /*
-     * 这个是以当前商品的价格为基础的订单总价加优惠卷那些的最后的价格，是最后的价格
-     * 一般来说order表放的一个amount就是最后付款的价格
+     * 这个是以当前商品的价格为基础的订单总价的最后的价格，是最后的价格,也是数据最正确的价格
      * 所以这个就是total_amount
      * */
     private BigDecimal amount;
@@ -28,10 +27,8 @@ public class QueryOrderListResult {
     private LocalDateTime createTime;
     private Long userId;
     /*
-    * 商品原价总和，还没扣整单优惠、改价、退款前的金额（注意这个必须得考虑商品价格可能会变化，
-    * 所以才有了item表，表里面有在以前购买的商品的价格）
-    * 由于这个没算折扣等一些内容所以肯定不是order表的amount，只可能是存放item里面的在当时的商品价格以及数量
-    * 对其做乘法以及累加得到的
+    * 商品原价总和，为啥要与当前商品的价格为基础的订单总价做对比是因为数据产生是在一开始在order表之后进行联表与其他
+    * 数据库表想连，可能会出现数据不一致
     *
     * */
     private BigDecimal originalPrice;

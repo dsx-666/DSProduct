@@ -3,6 +3,8 @@ import com.product.enums.ProductCategory;
 import com.product.pojo.dto.request.Filter;
 import com.product.pojo.bo.Scope;
 import com.product.pojo.dto.request.ProductRankingRequest;
+import com.product.pojo.dto.response.ProductBrandResponse;
+import com.product.pojo.dto.response.ProductCategoryStatsResponse;
 import com.product.pojo.dto.response.ProductRankingResponse;
 import com.product.pojo.po.User;
 
@@ -18,4 +20,8 @@ public interface ProductService {
 
     ProductRankingResponse getProductRanking(ProductRankingRequest productRankingRequest,
                                              User user);
+
+    ProductCategoryStatsResponse getProductCategoryStats(Filter filter,User user);
+
+    ProductBrandResponse getBrands(User user);
 }

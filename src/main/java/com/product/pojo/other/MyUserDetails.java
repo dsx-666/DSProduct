@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import com.product.enums.AccountStatus;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -46,6 +47,7 @@ public class MyUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return user.getAccountStatus() == null
+                || user.getAccountStatus() == AccountStatus.ACTIVE;
     }
 }

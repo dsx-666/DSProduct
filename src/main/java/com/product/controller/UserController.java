@@ -6,6 +6,7 @@ import com.product.pojo.dto.request.UserRequest;
 import com.product.pojo.dto.response.UserResponse;
 import com.product.pojo.other.MyUserDetails;
 import com.product.pojo.vo.RegisterUserVo;
+import com.product.service.JwtBlacklistService;
 import com.product.service.UserService;
 import com.product.pojo.vo.LoginUserVo;
 import com.product.pojo.vo.Result;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final JwtBlacklistService jwtBlacklistService;
 
     @PostMapping("/register")
     public Result<RegisterUserVo> register(
@@ -92,9 +94,12 @@ public class UserController {
                         .build()
         );
     }
-    // TODO:目前由前端控制把jwt给删除掉，这个需要将黑名单放入redis里面
-    @PostMapping("/api/auth/logout")
-    public Result<?> Logout() {
+    @PostMapping("/logout")
+    public Result<Void> Logout(
+            @RequestHeader("Authorization") String auth
+    ) {
+        String token = auth.substring(7);
+        jwtBlacklistService.addBlacklist(token);
         return Result.success(null);
     }
 

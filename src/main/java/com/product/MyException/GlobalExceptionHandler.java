@@ -3,9 +3,11 @@ package com.product.MyException;
 import com.product.enums.Code;
 import com.product.pojo.vo.Result;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -16,9 +18,16 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(ApiHttpException.class)
+    public ResponseEntity<Result<Void>> handleApiHttpException(
+            ApiHttpException e) {
+        return ResponseEntity.status(e.getHttpStatus())
+                .body(Result.error(e.getCode(),e.getMessage(),null));
+    }
+
     // 获取参数校验的报错（为了让前端可以精确识别）
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Result<Map<String, String>> handleValidException(
+    public ResponseEntity<Result<Map<String, String>>> handleValidException(
             MethodArgumentNotValidException e) {
         // 收集所有字段错误，转成 Map
         Map<String, String> errors = e.getBindingResult()
@@ -37,12 +46,20 @@ public class GlobalExceptionHandler {
                         // 如果同一字段有多个错误，取第一个
                         (v1, v2) -> v1
                 ));
-        return Result.error(Code.ParamError.getCode(),Code.ParamError.getDesc(), errors);
+        return ResponseEntity.badRequest().body(Result.error(
+                Code.ParamError.getCode(),Code.ParamError.getDesc(), errors));
     }
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public Result<Void> handleTypeMismatchException(
+    public ResponseEntity<Result<Void>> handleTypeMismatchException(
             MethodArgumentTypeMismatchException e) {
-        return Result.error(Code.ParamError.getCode(),Code.ParamError.getDesc(),null);
+        return ResponseEntity.badRequest().body(Result.error(
+                Code.ParamError.getCode(),Code.ParamError.getDesc(),null));
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Result<Void>> handleUnreadableRequest(
+            HttpMessageNotReadableException e) {
+        return ResponseEntity.badRequest().body(Result.error(
+                Code.ParamError.getCode(),Code.ParamError.getDesc(),null));
     }
     // 自定义报错（前端可以利用报错码来更好地处理不同的错误）
     @ExceptionHandler(BusinessException.class)

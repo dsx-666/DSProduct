@@ -21,7 +21,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String username)
     throws UsernameNotFoundException {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        //TODO: 注意由于是根据邮箱唯一性来进行登录所以业务上是username实则是Email
+        //注意由于是根据邮箱唯一性来进行登录所以业务上是username实则是Email
         wrapper.eq(User::getEmail, username);
         User user = userMapper.selectOne(wrapper);
         if (user == null) {

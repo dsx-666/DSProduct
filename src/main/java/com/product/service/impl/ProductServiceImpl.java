@@ -6,10 +6,13 @@ import com.product.enums.Code;
 import com.product.enums.ProductCategory;
 import com.product.enums.Role;
 import com.product.mapper.ProductMapper;
+import com.product.pojo.bo.ProductCategoryStatsList;
 import com.product.pojo.bo.ProductRankingList;
 import com.product.pojo.dto.request.Filter;
 import com.product.pojo.bo.Scope;
 import com.product.pojo.dto.request.ProductRankingRequest;
+import com.product.pojo.dto.response.ProductBrandResponse;
+import com.product.pojo.dto.response.ProductCategoryStatsResponse;
 import com.product.pojo.dto.response.ProductRankingResponse;
 import com.product.pojo.po.User;
 import com.product.service.ProductService;
@@ -43,11 +46,9 @@ public class ProductServiceImpl implements ProductService {
                 .map(ProductCategory::fromValue)
                         .toList();
     }
+    // 按升序进行获取productCount
     @Override
     public List<Map<String, Long>> getProductCount(Scope scope) {
-        if("BRAND".equals(scope.getMode()) && scope.getAllowedBrands().isEmpty()){
-            return List.of();
-        }
         String redisKey = "product:count:ranking:" + getScopeCacheKey(scope);
         Boolean exists = stringRedisTemplate.hasKey(redisKey);
         if (!Boolean.TRUE.equals(exists)) {
@@ -138,14 +139,15 @@ public class ProductServiceImpl implements ProductService {
                         .thenComparing(ProductRankingList::getSalesAmount,
                                 Comparator.reverseOrder())
                         .thenComparing(item -> item.getProduct().getProductId());
-        // :TODO 这个部分逻辑有问题我需要的是整个的，如果说管理员就是全部的排行，如果说是商品管理员就是对应商品的
-        long hotProductCount = (long) Math.ceil(productRankingList.size() * 0.3);
-        Set<Long> hotProductIds = productRankingList.stream()
-                .sorted(hotComparator)
-                .limit(hotProductCount)
-                .map(item -> item.getProduct().getProductId())
-                .collect(Collectors.toSet());
+        // 调整回来了
+        List<Map<String,Long>> productCount =  this.getProductCount(scope);
+        long hotProductCount = (long) Math.ceil(productCount.size() * 0.3);
+        productCount = productCount.subList(0,(int) hotProductCount);
 
+        Set<Long> hotProductIds = productCount.stream()
+                .map(item -> item.get("productId"))
+                .collect(Collectors.toSet());
+        log.info("hotProductIds:{}", hotProductIds);
         productRankingList.forEach(item -> item.setIsHot(
                 hotProductIds.contains(item.getProduct().getProductId())
         ));
@@ -180,6 +182,121 @@ public class ProductServiceImpl implements ProductService {
                 .rankList(rankList)
                 .scope(scope)
                 .build();
+    }
+
+    @Override
+    public ProductCategoryStatsResponse getProductCategoryStats(Filter filter,User user) {
+        filter.setStatuses(List.of("completed"));
+        filterValidator.validate(filter);
+
+        Scope scope = UserConverter.toScope(user);
+        if(!scope.validateFilter(filter)){
+            throw new BusinessException(Code.AccessDeniedError.getCode(),
+                    Code.AccessDeniedError.getDesc());
+        }
+
+        List<ProductCategoryStatsList> categoryList = productMapper
+                .selectProductCategoryStats(filter,scope)
+                .stream()
+                .map(this::toProductCategoryStatsList)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        if("ALL".equals(scope.getMode())
+            && filter.getBrands().isEmpty()
+            && filter.getCategories().isEmpty()){
+            Map<String,Object> uncategorizedStats =
+                    productMapper.selectUncategorizedStats(filter);
+            if(uncategorizedStats != null
+                    && uncategorizedStats.get("uniqueOrderCount") != null
+                    && ((Number) uncategorizedStats.get("uniqueOrderCount")).longValue() > 0){
+                categoryList.add(ProductCategoryStatsList.builder()
+                        .category(null)
+                        .categoryName("未归类")
+                        .isUncategorized(true)
+                        .salesAmount(toAmount(uncategorizedStats.get("salesAmount")))
+                        .salesVolume(null)
+                        .uniqueOrderCount(((Number) uncategorizedStats
+                                .get("uniqueOrderCount")).longValue())
+                        .build());
+            }
+        }
+
+        categoryList.sort(Comparator
+                .comparing(ProductCategoryStatsList::getSalesAmount,
+                        Comparator.reverseOrder())
+                .thenComparing(ProductCategoryStatsList::getCategory,
+                        Comparator.nullsLast(Comparator.naturalOrder())));
+
+        BigDecimal totalSalesAmount = categoryList.stream()
+                .map(ProductCategoryStatsList::getSalesAmount)
+                .reduce(BigDecimal.ZERO,(a,b) -> a.add(b)
+                        .setScale(2,RoundingMode.HALF_UP));
+
+        for(ProductCategoryStatsList item : categoryList){
+            item.setSalesRatio(totalSalesAmount.compareTo(BigDecimal.ZERO) == 0
+                    ? BigDecimal.ZERO
+                    : item.getSalesAmount().divide(
+                            totalSalesAmount,6,RoundingMode.HALF_UP));
+        }
+
+        return ProductCategoryStatsResponse.builder()
+                .totalSalesAmount(totalSalesAmount.setScale(2,RoundingMode.HALF_UP))
+                .categoryList(categoryList)
+                .scope(scope)
+                .build();
+    }
+
+    @Override
+    public ProductBrandResponse getBrands(User user) {
+        Scope scope = UserConverter.toScope(user);
+        List<String> brandList = productMapper.selectBrands()
+                .stream()
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .distinct()
+                .sorted()
+                .toList();
+
+        if("BRAND".equals(scope.getMode())){
+            brandList = brandList.stream()
+                    .filter(scope.getAllowedBrands()::contains)
+                    .toList();
+            if(brandList.isEmpty()){
+                scope.setAllowedBrands(List.of());
+            }
+        }
+
+        List<ProductBrandResponse.BrandOption> brands = brandList.stream()
+                .map(brand -> ProductBrandResponse.BrandOption.builder()
+                        .value(brand)
+                        .label(brand)
+                        .build())
+                .toList();
+
+        return ProductBrandResponse.builder()
+                .brands(brands)
+                .scope(scope)
+                .build();
+    }
+
+    private ProductCategoryStatsList toProductCategoryStatsList(
+            Map<String,Object> item){
+        String category = item.get("category").toString();
+        return ProductCategoryStatsList.builder()
+                .category(category)
+                .categoryName(ProductCategory.fromValue(category).getLabel())
+                .isUncategorized(false)
+                .salesAmount(toAmount(item.get("salesAmount")))
+                .salesVolume(((Number) item.get("salesVolume")).longValue())
+                .uniqueOrderCount(((Number) item.get("uniqueOrderCount")).longValue())
+                .build();
+    }
+
+    private BigDecimal toAmount(Object amount){
+        return amount == null
+                ? BigDecimal.ZERO.setScale(2,RoundingMode.HALF_UP)
+                : new BigDecimal(amount.toString())
+                .setScale(2,RoundingMode.HALF_UP);
     }
 
     private List<ProductRankingList> getProductRankingList(Filter filter,

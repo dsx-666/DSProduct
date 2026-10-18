@@ -188,6 +188,84 @@ public interface ProductMapper extends BaseMapper<Product> {
     """)
     List<Map<String,Object>> selectProductInfo(@Param("productIds") List<Long> productIds);
 
+    @Select("""
+        <script>
+            select p.category as category,
+                   ROUND(SUM(ROUND(oi.item_total, 2)), 2) as salesAmount,
+                   SUM(oi.quantity) as salesVolume,
+                   COUNT(DISTINCT o.order_id) as uniqueOrderCount
+            from `order` o inner join order_item oi on o.order_id = oi.order_id
+                inner join product p on p.product_id = oi.product_id
+            <where>
+                o.order_status = 'completed'
+                AND o.order_date &gt;= #{filter.startTime}
+                AND o.order_date &lt; DATE_ADD(#{filter.endTime}, INTERVAL 1 DAY)
+                <if test="filter.categories != null and !filter.categories.isEmpty()">
+                    AND p.category in
+                    <foreach
+                        collection="filter.categories"
+                        item="category"
+                        open="("
+                        separator=","
+                        close=")"
+                    >
+                        #{category}
+                    </foreach>
+                </if>
+                <if test="filter.brands != null and !filter.brands.isEmpty()">
+                    AND p.brand in
+                    <foreach
+                        collection="filter.brands"
+                        item="brand"
+                        open="("
+                        separator=","
+                        close=")"
+                    >
+                        #{brand}
+                    </foreach>
+                </if>
+                <if test="scope.mode == 'BRAND'">
+                    <choose>
+                        <when test="scope.allowedBrands != null and !scope.allowedBrands.isEmpty()">
+                            AND p.brand in
+                            <foreach
+                                collection="scope.allowedBrands"
+                                item="allowedBrand"
+                                open="("
+                                separator=","
+                                close=")"
+                            >
+                                #{allowedBrand}
+                            </foreach>
+                        </when>
+                        <otherwise>
+                            AND 1 = 0
+                        </otherwise>
+                    </choose>
+                </if>
+            </where>
+            group by p.category
+        </script>
+    """)
+    List<Map<String,Object>> selectProductCategoryStats(@Param("filter") Filter filter,
+                                                        @Param("scope") Scope scope);
+
+    @Select("""
+        SELECT
+            ROUND(SUM(ROUND(o.total_amount, 2)), 2) AS salesAmount,
+            COUNT(*) AS uniqueOrderCount
+        FROM `order` o
+        WHERE o.order_status = 'completed'
+          AND o.order_date >= #{startTime}
+          AND o.order_date < DATE_ADD(#{endTime}, INTERVAL 1 DAY)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM order_item oi
+              WHERE oi.order_id = o.order_id
+          )
+    """)
+    Map<String,Object> selectUncategorizedStats(Filter filter);
+
 
 
 

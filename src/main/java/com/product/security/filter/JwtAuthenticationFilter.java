@@ -1,6 +1,7 @@
 package com.product.security.filter;
 import com.product.pojo.other.JwtUtil;
 import com.product.security.token.PasswordAuthenticationToken;
+import com.product.service.JwtBlacklistService;
 import com.product.service.impl.UserDetailsServiceImpl;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -17,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
+import java.util.List;
 
 
 @Component
@@ -27,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final JwtBlacklistService jwtBlacklistService;
 
 
     @Override
@@ -42,12 +45,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
             String jwtToken = header.substring(7);
+            if(jwtBlacklistService.isBlacklisted(jwtToken)){
+                SecurityContextHolder.clearContext();
+                if("POST".equals(request.getMethod())
+                        && "/api/auth/logout".equals(request.getServletPath())){
+                    Authentication logoutAuthentication =
+                            new PasswordAuthenticationToken(
+                                    "logged-out",jwtToken,List.of()
+                            );
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(logoutAuthentication);
+                }
+                filterChain.doFilter(request,response);
+                return;
+            }
             if(!jwtUtil.isValid(jwtToken)) {
                 filterChain.doFilter(request, response);
                 return;
             }
             String username =  jwtUtil.getUsername(jwtToken);
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            if(!userDetails.isEnabled()){
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
             Authentication authentication =
                     new PasswordAuthenticationToken(
                             userDetails,

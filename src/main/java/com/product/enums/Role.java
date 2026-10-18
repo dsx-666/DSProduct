@@ -9,8 +9,8 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum Role {
     NORMAL_USER("NORMAL_USER","普通用户"),
-    SUPER_ADMIN("SUPER_ADMIN","管理员"),
-    ADMIN("ADMIN","商家");
+    SUPER_ADMIN("SUPER_ADMIN","超级管理员"),
+    ADMIN("ADMIN","品牌管理员");
     @EnumValue
     private final String role;
     private final String roleLabel;
