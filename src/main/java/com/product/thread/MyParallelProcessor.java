@@ -61,8 +61,9 @@ public class MyParallelProcessor {
 
         for (int i = 0; i < taskCount; i++) {
 
-            int start = i * data.size() / taskCount;
-            int end = (i + 1) * data.size() / taskCount;
+            int start = i * (data.size() / taskCount);
+            int end = Math.min((i + 1) * (data.size() / taskCount), data.size());
+
 
             List<T> part = new ArrayList<>(
                     data.subList(start, end)

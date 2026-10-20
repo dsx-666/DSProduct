@@ -91,12 +91,13 @@ public class QueryOrderListResult {
             this.hasAmountDifference = null;
             this.amount = null;
         }
-        String[] productName = this.productSummary.split("、");
-        // 对productName进行处理
-        if (productName.length > 2){
-            this.productSummary = productName[0]+"、"+productName[1]+"等";
-//            log.info(this.productSummary);
-        }
+//        String[] productName = this.productSummary.split("、");
+//        // 对productName进行处理
+//        if (productName.length > 2){
+//            this.productSummary = productName[0]+"、"+productName[1]+"等";
+//        }else{
+//            this.productSummary = productName[0];
+//        }
 //        log.info(this.productSummary);
         return this;
     }

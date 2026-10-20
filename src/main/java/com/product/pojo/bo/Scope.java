@@ -30,6 +30,7 @@ public class Scope {
         }
 
         if (brands.isEmpty()) {
+            filter.setBrands(allowedBrands);
             return true;
         }
 

@@ -280,8 +280,7 @@ public interface OrderMapper extends BaseMapper<Order> {
     @Select("""
            <script>
            select sum(oi.item_total) as visibleAmount
-           from `order` o left join `user` u on o.user_id = u.user_id
-                left join order_item oi on o.order_id = oi.order_id
+           from `order` o left join order_item oi on o.order_id = oi.order_id
                 left join product p on p.product_id = oi.product_id
            <where>
                 <if test="orderIdList != null and !orderIdList.isEmpty()">

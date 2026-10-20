@@ -268,7 +268,7 @@ public class UserServiceImpl implements UserService {
         }
         return toAdminUserListItem(user);
     }
-
+    // 使用了乐观锁
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AdminUserListItem updateAdminUser(

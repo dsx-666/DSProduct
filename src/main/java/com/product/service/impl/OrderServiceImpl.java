@@ -61,27 +61,36 @@ public class OrderServiceImpl implements OrderService {
             OrderListRequest orderListRequest,
             User user) {
         // 参数业务校验(防止后续的缓存击穿)
+        log.info("正在进行参数验证");
         filterValidator.validate(orderListRequest.getFilters());
         Scope scope = UserConverter.toScope(user);
         scope.validateFilter(orderListRequest.getFilters());
 
         // 操作数据库
+        log.info("正在进行数据库查询");
         orderListRequest.setOffset((orderListRequest.getPage()-1)*orderListRequest.getNum());
+        log.info("设置偏移量");
         List<QueryOrderListResult> list = orderMapper.selectOrderList(orderListRequest);
         List<Long> listIds = list
                 .stream()
                 .map(QueryOrderListResult::getOrderId)
                 .toList();
-
+        log.info("查询订单总数");
         Long count = orderMapper.selectOrderListCount(orderListRequest);
 
-
-
+        log.info("查询订单原始金额");
         List<BigDecimal> listOriginalAmount =
                 orderMapper.selectOrderOriginalAmount(listIds);
-
+        log.info("查询订单可见金额");
         List<BigDecimal> listVisibleAmountByBrand =
                 orderMapper.selectVisibleAmountByBrand(scope, listIds);
+        log.info(listOriginalAmount.toString());
+        log.info(listVisibleAmountByBrand.toString());
+        log.info(count.toString());
+        log.info(list.toString());
+        log.info(listIds.toString());
+        log.info("将查询结果转换为OrderListResult对象");
+
         List<QueryOrderListResult> result = IntStream.range(0,list.size())
                 .mapToObj(i -> list.get(i).ToList(
                         scope,
@@ -89,6 +98,7 @@ public class OrderServiceImpl implements OrderService {
                         listVisibleAmountByBrand.get(i))
                 )
                 .toList();
+        log.info("返回结果");
         return OrderListResponse.builder()
                 .scope(scope)
                 .orderList(result)
@@ -138,13 +148,13 @@ public class OrderServiceImpl implements OrderService {
         }
 
         // 价格等kpi数据处理
-
+        log.info("查询kpi数据");
         List<Map<String,Object>> list = orderMapper.selectOrderKpi(queryFilter);
         List<Long> orderIds = list.stream()
                 .map(map -> ((BigInteger) map.get("orderId"))
                         .longValue())
                 .toList();
-        // 获取order_item的价格总和
+        log.info("查询order_item价格总和");
         List<BigDecimal> originalAmount = orderMapper.selectOrderOriginalAmount(orderIds);
         IntStream.range(0, list.size())
                 .forEach(i ->
@@ -162,26 +172,30 @@ public class OrderServiceImpl implements OrderService {
         result =  parallelProcessor
                 .processInParallel(list,4,this::processKpi,result,this::mergerKpi);
         // 操作redis
+        log.info("查询商品数量");
         List<Map<String,Long>> productCount = productService.getProductCount(scope);
         // 获取productId
+        log.info("查询productId");
         List<Object> productId = productService.selectProductIdByFilter(queryFilter);
-        // 计算排名前 30% 的商品数量
+        log.info("计算排名前 30% 的商品数量");
         int topCount = (int) Math.ceil(productCount.size() * 0.3);
-        // 获取排名前 30% 的商品 ID
+        log.info("获取排名前 30% 的商品 ID");
         Set<Long> topProductIds = productCount.stream()
                 .limit(topCount)
                 .map(item -> item.get("productId"))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        // 统计 productId 命中前 30% 的数量
+        log.info("统计 productId 命中前 30% 的数量");
         long hitCount = productId.stream()
                 .filter(Objects::nonNull)
                 .map(id -> Long.valueOf(id.toString()))
                 .filter(topProductIds::contains)
                 .count();
+        log.info("设置热门商品数量");
         result.setHotProductCount(hitCount);
+        log.info("设置已售商品数量");
         result.setSoldProductCount((long) productId.size());
-        // 权限不够
+        log.info("权限不够");
         if(scope.getMode().equals("BRAND")){
             result.setMissingDetailOrderCount((long) 0);
             result.setAmountMismatchOrderCount(null);
