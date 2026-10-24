@@ -10,6 +10,9 @@ import com.product.pojo.dto.response.OrderKpiResponse;
 import com.product.pojo.dto.response.OrderListResponse;
 import com.product.pojo.dto.response.OrderPaymentStatsResponse;
 import com.product.pojo.dto.response.MyOrderListResponse;
+import com.product.pojo.dto.request.RepurchaseStatsRequest;
+import com.product.pojo.dto.response.RepurchaseStatsResponse;
+import com.product.pojo.dto.response.AfterSaleStatsResponse;
 import com.product.pojo.other.MyUserDetails;
 import com.product.pojo.vo.OrderDetailVo;
 import com.product.pojo.vo.OrderKpiVo;
@@ -244,6 +247,28 @@ public class OrderController {
                 .itemCount(response.getItemCount())
                 .items(response.getItems())
                 .build();
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @GetMapping("/customer/repurchase-stats")
+    public Result<RepurchaseStatsResponse> getRepurchaseStats(
+            @AuthenticationPrincipal MyUserDetails principal,
+            @ModelAttribute RepurchaseStatsRequest request,
+            HttpServletRequest httpRequest) {
+        if(!Set.of("startTime","endTime","category","brand","groupBy").containsAll(httpRequest.getParameterMap().keySet()))
+            throw new BusinessException(Code.ParamError.getCode(),"参数错误");
+        return Result.success(orderService.getRepurchaseStats(request,principal.getUser()));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @GetMapping("/orders/after-sale-stats")
+    public Result<AfterSaleStatsResponse> getAfterSaleStats(
+            @AuthenticationPrincipal MyUserDetails principal,
+            @ModelAttribute Filter filter,
+            HttpServletRequest httpRequest) {
+        if(!Set.of("startTime","endTime","category","brand").containsAll(httpRequest.getParameterMap().keySet()))
+            throw new BusinessException(Code.ParamError.getCode(),"参数错误");
+        return Result.success(orderService.getAfterSaleStats(filter,principal.getUser()));
     }
 
 }

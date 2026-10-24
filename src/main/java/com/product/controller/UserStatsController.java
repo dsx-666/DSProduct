@@ -7,6 +7,7 @@ import com.product.pojo.dto.response.UserCustomerStatsResponse;
 import com.product.pojo.other.MyUserDetails;
 import com.product.pojo.vo.Result;
 import com.product.pojo.vo.UserCustomerStatsVo;
+import com.product.pojo.dto.response.GenderStatsResponse;
 import com.product.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -54,5 +55,16 @@ public class UserStatsController {
                                 .getAbnormalUserRatio())
                         .build()
         );
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @GetMapping("/gender-stats")
+    public Result<GenderStatsResponse> getGenderStats(
+            @AuthenticationPrincipal MyUserDetails principal,
+            @ModelAttribute Filter filter,
+            HttpServletRequest request) {
+        if(!Set.of("startTime","endTime","category","brand").containsAll(request.getParameterMap().keySet()))
+            throw new BusinessException(Code.ParamError.getCode(),"参数错误");
+        return Result.success(userService.getGenderStats(filter,principal.getUser()));
     }
 }

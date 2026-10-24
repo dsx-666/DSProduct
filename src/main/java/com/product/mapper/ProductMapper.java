@@ -12,6 +12,140 @@ import java.util.List;
 import java.util.Map;
 
 public interface ProductMapper extends BaseMapper<Product> {
+    @Select("""
+        <script>
+        select p.product_id as productId, p.product_name as productName,
+               p.brand as brand, p.category as category,
+               count(r.review_id) as reviewCount,
+               avg(r.rating) as averageRating,
+               sum(case when r.rating=1 then 1 else 0 end) as rating1,
+               sum(case when r.rating=2 then 1 else 0 end) as rating2,
+               sum(case when r.rating=3 then 1 else 0 end) as rating3,
+               sum(case when r.rating=4 then 1 else 0 end) as rating4,
+               sum(case when r.rating=5 then 1 else 0 end) as rating5,
+               max(r.review_date) as latestReviewDate
+        from product p left join review r on r.product_id=p.product_id
+          and (#{startTime} is null or r.review_date &gt;= #{startTime})
+          and (#{endTime} is null or r.review_date &lt; DATE_ADD(#{endTime}, INTERVAL 1 DAY))
+        <where>
+          <if test="categories != null and !categories.isEmpty()">AND p.category in
+            <foreach collection="categories" item="v" open="(" separator="," close=")">#{v}</foreach>
+          </if>
+          <if test="brands != null and !brands.isEmpty()">AND p.brand in
+            <foreach collection="brands" item="v" open="(" separator="," close=")">#{v}</foreach>
+          </if>
+          <if test="productId != null">AND p.product_id=#{productId}</if>
+        </where>
+        group by p.product_id,p.product_name,p.brand,p.category
+        order by
+          <choose>
+            <when test="sort == 'averageRating'">averageRating desc</when>
+            <when test="sort == 'latestReview'">latestReviewDate desc</when>
+            <otherwise>reviewCount desc</otherwise>
+          </choose>, p.product_id asc
+        limit #{offset},#{num}
+        </script>
+    """)
+    List<Map<String,Object>> selectReviewInsightProducts(
+            @Param("startTime") java.time.LocalDate startTime,
+            @Param("endTime") java.time.LocalDate endTime,
+            @Param("categories") List<String> categories,
+            @Param("brands") List<String> brands,
+            @Param("productId") Long productId,
+            @Param("sort") String sort,
+            @Param("offset") Long offset,
+            @Param("num") Long num);
+
+    @Select("""
+        <script>
+        select count(*) from product p
+        <where>
+          <if test="categories != null and !categories.isEmpty()">AND p.category in
+            <foreach collection="categories" item="v" open="(" separator="," close=")">#{v}</foreach>
+          </if>
+          <if test="brands != null and !brands.isEmpty()">AND p.brand in
+            <foreach collection="brands" item="v" open="(" separator="," close=")">#{v}</foreach>
+          </if>
+          <if test="productId != null">AND p.product_id=#{productId}</if>
+        </where>
+        </script>
+    """)
+    Long countReviewInsightProducts(@Param("categories") List<String> categories,
+                                    @Param("brands") List<String> brands,
+                                    @Param("productId") Long productId);
+
+    @Select("""
+        <script>
+        select product_id as productId,rating,review_text as reviewText,review_date as reviewDate
+        from review where product_id in
+          <foreach collection="productIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+          and (#{startTime} is null or review_date &gt;= #{startTime})
+          and (#{endTime} is null or review_date &lt; DATE_ADD(#{endTime}, INTERVAL 1 DAY))
+        order by product_id asc,review_date desc,review_id asc
+        </script>
+    """)
+    List<Map<String,Object>> selectInsightReviewRows(@Param("productIds") List<Long> productIds,
+                                                      @Param("startTime") java.time.LocalDate startTime,
+                                                      @Param("endTime") java.time.LocalDate endTime);
+
+    @Select("""
+        <script>
+        select case when u.user_id is null or u.signup_date is null
+                    or u.signup_date &gt; #{businessDate} then 'UNCLASSIFIED'
+                    when DATEDIFF(#{businessDate},u.signup_date) &lt; 30 then 'NEW'
+                    else 'OLD' end as segment,
+               p.product_id as productId,p.product_name as productName,
+               p.brand as brand,p.category as category,
+               ROUND(SUM(ROUND(oi.item_total,2)),2) as salesAmount,
+               SUM(oi.quantity) as quantity,
+               COUNT(DISTINCT o.user_id) as buyerCount,
+               COUNT(DISTINCT o.order_id) as orderCount
+        from `order` o join order_item oi on oi.order_id=o.order_id
+          join product p on p.product_id=oi.product_id
+          left join `user` u on u.user_id=o.user_id
+        where o.order_status='completed'
+          and o.order_date &gt;= #{startTime}
+          and o.order_date &lt; DATE_ADD(#{endTime},INTERVAL 1 DAY)
+          <if test="categories != null and !categories.isEmpty()">AND p.category in
+            <foreach collection="categories" item="v" open="(" separator="," close=")">#{v}</foreach>
+          </if>
+          <if test="brands != null and !brands.isEmpty()">AND p.brand in
+            <foreach collection="brands" item="v" open="(" separator="," close=")">#{v}</foreach>
+          </if>
+          <if test="allowedBrands != null">AND p.brand in
+            <foreach collection="allowedBrands" item="v" open="(" separator="," close=")">#{v}</foreach>
+          </if>
+        group by segment,p.product_id,p.product_name,p.brand,p.category
+        </script>
+    """)
+    List<Map<String,Object>> selectCustomerSalesRankingRows(
+            @Param("startTime") java.time.LocalDate startTime,
+            @Param("endTime") java.time.LocalDate endTime,
+            @Param("businessDate") java.time.LocalDate businessDate,
+            @Param("categories") List<String> categories,
+            @Param("brands") List<String> brands,
+            @Param("allowedBrands") List<String> allowedBrands);
+
+    @Select("""
+        <script>
+        select case when u.user_id is null or u.signup_date is null or u.signup_date &gt; #{businessDate} then 'UNCLASSIFIED'
+          when DATEDIFF(#{businessDate},u.signup_date) &lt; 30 then 'NEW' else 'OLD' end as segment,
+          count(distinct o.user_id) as buyerCount,count(distinct o.order_id) as orderCount,
+          ROUND(SUM(ROUND(oi.item_total,2)),2) as salesAmount,SUM(oi.quantity) as quantity
+        from `order` o join order_item oi on oi.order_id=o.order_id join product p on p.product_id=oi.product_id
+          left join `user` u on u.user_id=o.user_id
+        where o.order_status='completed' and o.order_date &gt;= #{startTime} and o.order_date &lt; DATE_ADD(#{endTime},INTERVAL 1 DAY)
+          <if test="categories != null and !categories.isEmpty()">AND p.category in <foreach collection="categories" item="v" open="(" separator="," close=")">#{v}</foreach></if>
+          <if test="brands != null and !brands.isEmpty()">AND p.brand in <foreach collection="brands" item="v" open="(" separator="," close=")">#{v}</foreach></if>
+          <if test="allowedBrands != null"><choose><when test="allowedBrands.isEmpty()">AND 1=0</when><otherwise>AND p.brand in <foreach collection="allowedBrands" item="v" open="(" separator="," close=")">#{v}</foreach></otherwise></choose></if>
+        group by segment
+        </script>
+    """)
+    List<Map<String,Object>> selectCustomerSalesSegmentTotals(@Param("startTime") java.time.LocalDate startTime,
+            @Param("endTime") java.time.LocalDate endTime,@Param("businessDate") java.time.LocalDate businessDate,
+            @Param("categories") List<String> categories,@Param("brands") List<String> brands,
+            @Param("allowedBrands") List<String> allowedBrands);
+
 //    @Insert("${a}")
     default List<Object> selectCategories() {
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();

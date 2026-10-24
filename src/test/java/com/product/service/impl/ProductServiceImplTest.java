@@ -6,12 +6,12 @@ import com.product.mapper.ProductMapper;
 import com.product.pojo.dto.request.Filter;
 import com.product.pojo.dto.response.ProductCategoryStatsResponse;
 import com.product.pojo.po.User;
+import com.product.service.RedisService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -32,7 +32,7 @@ class ProductServiceImplTest {
     @Mock
     private ProductMapper productMapper;
     @Mock
-    private StringRedisTemplate stringRedisTemplate;
+    private RedisService redisService;
     @Mock
     private FilterValidator filterValidator;
 
@@ -41,7 +41,7 @@ class ProductServiceImplTest {
     @BeforeEach
     void setUp() {
         productService = new ProductServiceImpl(
-                productMapper,stringRedisTemplate,filterValidator
+                productMapper,redisService,filterValidator
         );
     }
 

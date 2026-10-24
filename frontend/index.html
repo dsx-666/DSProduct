@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#354052">
+  <meta name="description" content="衡账经营工作台：销售趋势、品类结构、商品排行与订单追溯。">
+  <title>衡账 · 经营数据工作台</title>
+  <link rel="stylesheet" href="./styles.css?v=20261024-5">
+  <link rel="stylesheet" href="./styles/product-operations.css?v=20261024-1">
+  <link rel="stylesheet" href="./styles/product-dialog.css?v=20261024-3">
+  <script src="./vendor/echarts.min.js" defer></script>
+  <script src="./product-charts.js?v=20261024-1" defer></script>
+  <script src="./app.js?v=20261024-8" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">跳到主要内容</a>
+
+  <section class="auth-screen" id="auth-screen" aria-labelledby="auth-title">
+    <div class="auth-story">
+      <div class="wordmark wordmark--light">
+        <span class="wordmark__mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>衡账</span>
+      </div>
+      <div class="auth-story__body">
+        <p class="auth-story__statement">让每一笔经营结果<br>都有据可循。</p>
+        <p class="auth-story__copy">在统一的授权范围内查看销售、商品与订单，用一条清晰路径完成复盘与核对。</p>
+      </div>
+      <div class="auth-story__ledger" aria-label="工作台能力">
+        <div><span>01</span><strong>范围清楚</strong><small>身份与品牌权限始终可见</small></div>
+        <div><span>02</span><strong>口径一致</strong><small>指标、图表与订单共用筛选</small></div>
+        <div><span>03</span><strong>订单可查</strong><small>从异常信号追溯到明细</small></div>
+      </div>
+    </div>
+
+    <div class="auth-panel">
+      <div class="auth-forms" id="auth-forms" data-mode="login">
+        <form class="auth-form is-active" id="login-form" aria-hidden="false" novalidate>
+          <div class="auth-form__head">
+            <span class="auth-form__rule" aria-hidden="true"></span>
+            <h1 id="auth-title">登录工作台</h1>
+            <p>使用已开通经营权限的邮箱账号。</p>
+          </div>
+          <div class="form-field">
+            <label for="login-email">邮箱</label>
+            <input id="login-email" name="email" type="email" autocomplete="username" placeholder="name@example.com" required>
+          </div>
+          <div class="form-field">
+            <label for="login-password">密码</label>
+            <div class="password-field">
+              <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="输入登录密码" required>
+              <button class="text-button" id="toggle-password" type="button" aria-pressed="false">显示</button>
+            </div>
+          </div>
+          <p class="auth-feedback auth-feedback--success" id="register-success" role="status" hidden></p>
+          <p class="form-error" id="login-error" role="alert" hidden></p>
+          <button class="primary-button primary-button--wide" id="login-submit" type="submit">
+            <span>登录</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7 4 6 6-6 6M13 10H3"/></svg>
+          </button>
+          <p class="auth-form__switch">还没有账号？<button type="button" data-auth-switch="register">创建账号</button></p>
+          <p class="auth-form__hint">登录凭证仅保存在本次浏览器会话中。</p>
+        </form>
+
+        <form class="auth-form" id="register-form" aria-hidden="true" inert novalidate hidden>
+          <div class="auth-form__head">
+            <span class="auth-form__rule" aria-hidden="true"></span>
+            <h1>创建账号</h1>
+            <p>填写基本信息，完成后返回登录。</p>
+          </div>
+          <div class="form-field">
+            <label for="register-name">姓名</label>
+            <input id="register-name" name="userName" type="text" autocomplete="name" placeholder="输入姓名" maxlength="60" required>
+          </div>
+          <div class="form-field">
+            <label for="register-email">邮箱</label>
+            <input id="register-email" name="email" type="email" autocomplete="email" placeholder="name@example.com" required>
+          </div>
+          <div class="form-field">
+            <label for="register-password">密码</label>
+            <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="设置登录密码" minlength="6" maxlength="20" required>
+            <small class="auth-field-hint">6–20 位，包含大写字母、小写字母和数字。</small>
+          </div>
+          <div class="form-field">
+            <label for="register-confirm-password">确认密码</label>
+            <input id="register-confirm-password" name="confirmPassword" type="password" autocomplete="new-password" placeholder="再次输入密码" minlength="6" maxlength="20" required>
+          </div>
+          <p class="form-error" id="register-error" role="alert" tabindex="-1" hidden></p>
+          <button class="primary-button primary-button--wide" id="register-submit" type="submit">
+            <span>提交注册</span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v14m-7-7h14"/></svg>
+          </button>
+          <p class="auth-form__switch">已有账号？<button type="button" data-auth-switch="login">返回登录</button></p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <div class="app-shell" id="app-shell" hidden>
+    <aside class="sidebar" id="sidebar">
+      <div class="wordmark">
+        <span class="wordmark__mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>衡账</span>
+      </div>
+      <p class="sidebar__caption">经营数据工作台</p>
+      <nav class="main-nav" aria-label="主导航">
+        <a class="main-nav__item is-active" href="#overview" data-nav="overview">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m6 10V5m6 14v-7m4 7H2"/></svg>
+          <span>经营概览</span>
+        </a>
+        <a class="main-nav__item" href="#product-operations" data-nav="products">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9ZM12 12l8-4.5M12 12 4 7.5M12 12v9"/></svg>
+          <span>商品经营</span>
+        </a>
+        <a class="main-nav__item" href="#orders" data-nav="orders">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Zm4 5h6M9 12h6"/></svg>
+          <span>订单追溯</span>
+        </a>
+        <a class="main-nav__item" id="user-nav" href="#user-management" data-nav="users" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2m6.5-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6m3-3h-6"/></svg>
+          <span>用户管理</span>
+        </a>
+      </nav>
+      <div class="sidebar__scope">
+        <div class="sidebar__scope-label">当前数据范围</div>
+        <strong id="sidebar-scope">正在确认权限…</strong>
+        <small id="sidebar-role">待载入</small>
+      </div>
+      <div class="sidebar__user">
+        <span class="avatar" id="user-avatar" aria-hidden="true">衡</span>
+        <span><strong id="sidebar-user">待载入</strong><small id="sidebar-email">待载入</small></span>
+        <button class="icon-button icon-button--inverse" id="logout-button" type="button" aria-label="退出登录" title="退出登录">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5m4-3 4-4-4-4m4 4H9"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <main class="workspace" id="main-content">
+      <header class="topbar">
+        <button class="icon-button topbar__menu" id="menu-button" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div class="breadcrumb"><span>工作台</span><i></i><strong>经营概览</strong></div>
+        <div class="topbar__meta">
+          <span class="connection-state" id="connection-state"><i></i><span>等待连接</span></span>
+          <span class="business-date">业务日 <strong>2025.11.14</strong></span>
+        </div>
+      </header>
+
+      <div class="workspace__inner">
+        <section class="page-heading" id="overview">
+          <div>
+            <h1>经营概览</h1>
+            <p>在同一筛选范围内读取销售表现，并追溯到具体订单。</p>
+          </div>
+          <button class="secondary-button" id="refresh-button" type="button">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 6V2m0 0h-4m4 0-3 3a6 6 0 1 0 1.3 6.4"/></svg>
+            刷新数据
+          </button>
+        </section>
+
+        <form class="filter-sheet" id="filter-form">
+          <div class="filter-sheet__head">
+            <div><strong>统一筛选</strong><span>以下条件同步影响指标、图表和订单列表</span></div>
+            <div class="quick-ranges" role="group" aria-label="快捷时间范围">
+              <button type="button" data-days="7" aria-pressed="false">近 7 天</button>
+              <button class="is-active" type="button" data-days="30" aria-pressed="true">近 30 天</button>
+              <button type="button" data-days="90" aria-pressed="false">近 90 天</button>
+            </div>
+          </div>
+          <div class="filter-grid">
+            <div class="form-field form-field--compact">
+              <label for="start-date">起始日期</label>
+              <input id="start-date" name="startTime" type="date" max="2025-11-14" value="2025-10-16" required>
+            </div>
+            <div class="form-field form-field--compact">
+              <label for="end-date">结束日期</label>
+              <input id="end-date" name="endTime" type="date" max="2025-11-14" value="2025-11-14" required>
+            </div>
+            <details class="multi-select" id="category-select">
+              <summary><span><small>商品品类</small><strong data-summary>全部品类</strong></span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 6 5 5 5-5"/></svg></summary>
+              <div class="multi-select__menu"><p>选择一个或多个品类</p><div data-options="category"></div></div>
+            </details>
+            <details class="multi-select" id="brand-select">
+              <summary><span><small>品牌范围</small><strong data-summary>全部品牌</strong></span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 6 5 5 5-5"/></svg></summary>
+              <div class="multi-select__menu"><p>品牌范围由账号权限控制</p><div data-options="brand"></div></div>
+            </details>
+            <div class="filter-actions">
+              <button class="ghost-button" id="reset-filter" type="button">重置</button>
+              <button class="primary-button" id="apply-filter" type="submit">应用筛选</button>
+            </div>
+          </div>
+        </form>
+
+        <section class="scope-strip" aria-live="polite">
+          <div><span class="scope-strip__seal" aria-hidden="true">核</span><span><small>当前统计口径</small><strong id="active-scope-text">近 30 天 · 全部品类 · 已完成订单</strong></span></div>
+          <p id="last-updated">尚未更新</p>
+        </section>
+
+        <section class="kpi-ledger" aria-label="关键经营指标">
+          <div class="kpi-state" id="kpi-state" role="status" hidden></div>
+          <article class="kpi-item kpi-item--lead">
+            <div class="kpi-item__head"><span>总销售额</span><small>人民币元</small></div>
+            <strong class="kpi-item__value" id="kpi-sales">待载入</strong>
+            <p id="kpi-sales-note">当前筛选范围</p>
+          </article>
+          <article class="kpi-item">
+            <div class="kpi-item__head"><span>去重订单数</span><small>有效订单</small></div>
+            <strong class="kpi-item__value" id="kpi-orders">待载入</strong>
+            <p>与趋势订单合计核对</p>
+          </article>
+          <article class="kpi-item">
+            <div class="kpi-item__head"><span>平均客单价</span><small>销售额 ÷ 订单</small></div>
+            <strong class="kpi-item__value" id="kpi-average">待载入</strong>
+            <p>按去重订单计算</p>
+          </article>
+          <article class="kpi-item">
+            <div class="kpi-item__head"><span>热销商品数</span><small>销量前 30%</small></div>
+            <strong class="kpi-item__value" id="kpi-hot">待载入</strong>
+            <p id="kpi-hot-note">等待排行数据</p>
+          </article>
+        </section>
+
+        <section class="analysis-grid analysis-grid--primary">
+          <article class="data-panel data-panel--trend" data-panel="trend">
+            <header class="data-panel__header">
+              <div><h2>销售趋势</h2><p>销售额与订单量随时间变化</p></div>
+              <div class="panel-controls">
+                <div class="segmented" role="group" aria-label="趋势指标">
+                  <button class="is-active" type="button" data-trend="amount" aria-pressed="true">销售额</button>
+                  <button type="button" data-trend="orders" aria-pressed="false">订单量</button>
+                  <button type="button" data-trend="both" aria-pressed="false">双指标</button>
+                </div>
+                <select id="granularity-select" aria-label="趋势聚合粒度">
+                  <option value="day">按日</option>
+                  <option value="week">按周</option>
+                  <option value="month">按月</option>
+                </select>
+              </div>
+            </header>
+            <div class="chart-shell"><div class="chart" id="trend-chart" role="img" aria-label="销售趋势折线图"></div><div class="panel-state" data-state="trend"></div></div>
+          </article>
+
+          <article class="data-panel data-panel--ranking" data-panel="ranking">
+            <header class="data-panel__header">
+              <div><h2>商品 TOP 10</h2><p id="ranking-copy">展示当前范围完整 TOP10；朱砂标记全量商品销量前 30%</p></div>
+              <div class="segmented" role="group" aria-label="商品排行指标">
+                <button class="is-active" type="button" data-ranking="amount" aria-pressed="true">销售额</button>
+                <button type="button" data-ranking="quantity" aria-pressed="false">销量</button>
+              </div>
+            </header>
+            <div class="chart-shell"><div class="chart" id="ranking-chart" role="img" aria-label="商品 TOP10 横向条形图"></div><div class="panel-state" data-state="ranking"></div></div>
+          </article>
+        </section>
+
+        <section class="analysis-grid analysis-grid--secondary">
+          <article class="data-panel" data-panel="category">
+            <header class="data-panel__header category-header">
+              <div><h2>全量品类经营构成</h2><p id="category-copy">读取当前筛选范围内全部品类统计</p></div>
+              <div class="category-header__controls">
+                <div class="segmented" role="group" aria-label="品类图表显示方式">
+                  <button type="button" data-category-view="flat" aria-pressed="false">平面</button>
+                  <button class="is-active" type="button" data-category-view="3d" aria-pressed="true" title="切换到可旋转三维品类图">3D</button>
+                </div>
+                <span class="unit-label" id="category-unit">单位：销售额</span>
+              </div>
+            </header>
+            <div class="chart-shell"><div class="chart chart--compact" id="category-chart" role="img" aria-label="商品品类销售额与销量柱状图" hidden></div><div class="category-3d" id="category-3d" role="img" aria-label="三维品类图，柱高代表销售额，柱体深度代表销量"><div class="category-3d__stage" id="category-3d-stage" tabindex="0" aria-describedby="category-3d-data" aria-label="三维品类图交互视图，使用方向键旋转，正负键缩放"></div><ul class="visually-hidden" id="category-3d-data"></ul><div class="category-3d__tooltip" id="category-3d-tooltip" role="status" hidden></div><div class="category-3d__legend"><span class="category-3d__key"></span><span>柱高：销售额</span><span class="category-3d__key category-3d__key--depth"></span><span>柱体深度：销量</span></div></div><div class="panel-state" data-state="category"></div></div>
+          </article>
+          <article class="data-panel" data-panel="distribution">
+            <header class="data-panel__header">
+              <div><h2>用户与支付构成</h2><p>读取当前筛选范围的全量新老客与支付统计</p></div>
+              <div class="segmented" role="group" aria-label="分布维度">
+                <button class="is-active" type="button" data-distribution="status" aria-pressed="true">新老用户</button>
+                <button type="button" data-distribution="payment" aria-pressed="false">支付方式</button>
+              </div>
+            </header>
+            <div class="chart-shell"><div class="chart chart--compact" id="distribution-chart" role="img" aria-label="当前筛选范围新老购买用户与支付方式环形图"></div><div class="panel-state" data-state="distribution"></div></div>
+          </article>
+        </section>
+
+        <section class="product-operations" id="product-operations" aria-labelledby="product-operations-title">
+          <header class="section-heading">
+            <div><h2 id="product-operations-title">商品经营</h2><p>按授权品牌查看全生命周期用户分层，并在筛选期或全历史口径下分析商品。</p></div>
+            <span class="section-scope" id="product-scope">等待确认范围</span>
+          </header>
+
+          <article class="segment-panel" aria-labelledby="segment-title">
+            <header class="segment-panel__head">
+              <div><h3 id="segment-title">品牌新老客分层</h3><p>按品牌累计完成订单数划分：第 1–3 次为新客，第 4 次起为老客。</p></div>
+              <label class="inline-select" id="segment-brand-field">统计品牌
+                <select id="segment-brand" aria-label="品牌新老客统计品牌"><option value="">全部品牌</option></select>
+              </label>
+            </header>
+            <div class="segment-result" id="segment-result" aria-live="polite">
+              <div class="loading-rule" aria-label="正在加载品牌用户分层"></div>
+            </div>
+          </article>
+
+          <section class="orders-section product-section" aria-labelledby="products-title">
+            <header class="orders-section__head">
+              <div><h2 id="products-title">品牌商品经营数据</h2><p id="products-range-copy">当前使用页面日期与品牌筛选；销售与用户指标仅统计完成订单。</p></div>
+              <span class="total-count" id="products-total">等待统计</span>
+            </header>
+            <form class="table-toolbar product-toolbar" id="product-filter-form">
+              <div class="segmented range-switch" role="group" aria-label="商品统计范围">
+                <button class="is-active" type="button" data-product-range="FILTERED" aria-pressed="true">当前筛选</button>
+                <button type="button" data-product-range="ALL" aria-pressed="false">全量历史</button>
+              </div>
+              <label class="search-field" for="product-keyword">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg>
+                <input id="product-keyword" name="keyWord" type="search" maxlength="100" placeholder="商品 ID 或名称" autocomplete="off">
+              </label>
+              <label class="inline-select">排序
+                <select id="product-sort" name="sortBy">
+                  <option value="salesVolume">销量</option>
+                  <option value="salesAmount">销售额</option>
+                  <option value="wishlistCount">愿望清单人数</option>
+                </select>
+              </label>
+              <label class="inline-select">次序
+                <select id="product-order" name="order"><option value="desc">从高到低</option><option value="asc">从低到高</option></select>
+              </label>
+              <label class="inline-select">每页
+                <select id="product-page-size" name="num"><option value="10">10 条</option><option value="20" selected>20 条</option><option value="50">50 条</option></select>
+              </label>
+              <button class="secondary-button" type="submit">查询商品</button>
+            </form>
+            <div class="table-wrap product-table-wrap">
+              <table class="products-table">
+                <thead><tr><th scope="col">商品</th><th scope="col">品牌 / 品类</th><th scope="col" class="align-right">当前价</th><th scope="col" class="align-right">销量</th><th scope="col" class="align-right">销售额</th><th scope="col" class="align-right">购买用户</th><th scope="col" class="align-right">复购率</th><th scope="col" class="align-right">评分</th><th scope="col"><span class="visually-hidden">操作</span></th></tr></thead>
+                <tbody id="products-body"></tbody>
+              </table>
+              <div class="table-state" id="products-state" hidden></div>
+            </div>
+            <footer class="pagination">
+              <p id="products-page-summary">等待结果</p>
+              <div>
+                <button class="icon-button" id="products-previous-page" type="button" aria-label="商品上一页"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.5 4-6 6 6 6"/></svg></button>
+                <span id="products-page-indicator">0 / 0</span>
+                <button class="icon-button" id="products-next-page" type="button" aria-label="商品下一页"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7.5 4 6 6-6 6"/></svg></button>
+              </div>
+            </footer>
+          </section>
+        </section>
+
+        <section class="orders-section" id="orders">
+          <header class="orders-section__head">
+            <div><h2>订单明细</h2><p>仅按商品名称搜索，结果仍受上方经营范围约束。</p></div>
+            <span class="total-count" id="order-total">等待统计</span>
+          </header>
+          <form class="table-toolbar" id="order-filter-form">
+            <label class="search-field" for="order-keyword">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg>
+              <input id="order-keyword" name="keyword" type="search" maxlength="100" placeholder="输入商品名称" autocomplete="off" aria-describedby="order-search-hint">
+            </label>
+            <span class="visually-hidden" id="order-search-hint">当前前端只开放商品名称搜索，不接受纯数字订单号。</span>
+            <label class="inline-select">订单状态
+              <select id="order-status" name="status">
+                <option value="">全部状态</option>
+                <option value="processing">处理中</option>
+                <option value="shipped">已发货</option>
+                <option value="completed">已完成</option>
+                <option value="cancelled">已取消</option>
+                <option value="returned">已退回</option>
+              </select>
+            </label>
+            <label class="inline-select">每页
+              <select id="page-size" name="pageSize">
+                <option value="10">10 条</option>
+                <option value="20" selected>20 条</option>
+                <option value="50">50 条</option>
+              </select>
+            </label>
+            <button class="secondary-button" type="submit">查询订单</button>
+          </form>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">订单号</th><th scope="col">商品</th><th scope="col">用户</th><th scope="col">状态</th><th scope="col">支付方式</th><th scope="col" class="align-right">可见金额</th><th scope="col">下单时间</th><th scope="col"><span class="visually-hidden">操作</span></th></tr></thead>
+              <tbody id="orders-body"></tbody>
+            </table>
+            <div class="table-state" id="orders-state" hidden></div>
+          </div>
+          <footer class="pagination">
+            <p id="page-summary">等待结果</p>
+            <div>
+              <button class="icon-button" id="previous-page" type="button" aria-label="上一页"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.5 4-6 6 6 6"/></svg></button>
+              <span id="page-indicator">0 / 0</span>
+              <button class="icon-button" id="next-page" type="button" aria-label="下一页"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7.5 4 6 6-6 6"/></svg></button>
+            </div>
+          </footer>
+        </section>
+
+        <section class="orders-section users-section" id="user-management" hidden aria-labelledby="users-title">
+          <header class="orders-section__head">
+            <div><h2 id="users-title">用户管理</h2><p>仅超级管理员可查询人员、新增品牌管理员并维护姓名、品牌与账号状态。</p></div>
+            <div class="section-head__actions"><span class="total-count" id="users-total">正在加载</span><button class="primary-button" id="add-admin-button" type="button">新增管理员</button></div>
+          </header>
+          <form class="table-toolbar" id="users-filter-form">
+            <label class="search-field" for="users-keyword">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg>
+              <input id="users-keyword" name="keyWord" type="search" maxlength="100" placeholder="搜索姓名、邮箱或用户 ID" autocomplete="off">
+            </label>
+            <label class="inline-select">角色
+              <select id="users-role" name="role">
+                <option value="">全部角色</option>
+                <option value="SUPER_ADMIN">超级管理员</option>
+                <option value="ADMIN">品牌管理员</option>
+                <option value="NORMAL_USER">普通用户</option>
+              </select>
+            </label>
+            <label class="inline-select">状态
+              <select id="users-status" name="status">
+                <option value="">全部状态</option>
+                <option value="ACTIVE">启用</option>
+                <option value="DISABLED">停用</option>
+              </select>
+            </label>
+            <label class="inline-select">每页
+              <select id="users-page-size" name="num">
+                <option value="10" selected>10 条</option>
+                <option value="20">20 条</option>
+                <option value="50">50 条</option>
+                <option value="100">100 条</option>
+              </select>
+            </label>
+            <button class="secondary-button" type="submit">查询人员</button>
+          </form>
+          <div class="table-wrap">
+            <table class="users-table">
+              <thead><tr><th scope="col">用户 ID</th><th scope="col">姓名与邮箱</th><th scope="col">角色</th><th scope="col">管理品牌</th><th scope="col">状态</th><th scope="col">创建日期</th><th scope="col"><span class="visually-hidden">操作</span></th></tr></thead>
+              <tbody id="users-body"></tbody>
+            </table>
+            <div class="table-state" id="users-state" hidden></div>
+          </div>
+          <footer class="pagination">
+            <p id="users-page-summary">正在加载人员列表</p>
+            <div>
+              <button class="icon-button" id="users-previous-page" type="button" aria-label="人员上一页"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.5 4-6 6 6 6"/></svg></button>
+              <span id="users-page-indicator">0 / 0</span>
+              <button class="icon-button" id="users-next-page" type="button" aria-label="人员下一页"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m7.5 4 6 6-6 6"/></svg></button>
+            </div>
+          </footer>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div class="sidebar-scrim" id="sidebar-scrim" hidden></div>
+
+  <aside class="detail-drawer" id="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="detail-title" aria-hidden="true" tabindex="-1">
+    <header>
+      <div><small>订单摘要</small><h2 id="detail-title">等待选择</h2></div>
+      <button class="icon-button" id="close-detail" type="button" aria-label="关闭订单摘要"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 4 12 12M16 4 4 16"/></svg></button>
+    </header>
+    <div class="detail-drawer__body" id="detail-body"></div>
+  </aside>
+  <div class="drawer-scrim" id="drawer-scrim" hidden></div>
+
+  <dialog class="product-dialog" id="product-drawer" aria-labelledby="product-detail-title">
+    <header class="product-dialog__header">
+      <div><small>商品经营详情</small><h2 id="product-detail-title">等待选择</h2></div>
+      <button class="icon-button" id="close-product-detail" type="button" aria-label="关闭商品经营详情"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 4 12 12M16 4 4 16"/></svg></button>
+    </header>
+    <div class="product-detail-body" id="product-detail-body"></div>
+  </dialog>
+
+  <dialog class="user-dialog" id="user-dialog" aria-labelledby="user-dialog-title">
+    <form id="user-form" novalidate>
+      <header class="user-dialog__head">
+        <div><small id="user-dialog-mode">人员管理</small><h2 id="user-dialog-title">新增品牌管理员</h2></div>
+        <button class="icon-button" id="close-user-dialog" type="button" aria-label="关闭人员表单"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 4 12 12M16 4 4 16"/></svg></button>
+      </header>
+      <div class="user-dialog__body">
+        <input id="managed-version" type="hidden">
+        <div class="form-field" id="managed-email-group">
+          <label for="managed-email">邮箱</label>
+          <input id="managed-email" type="email" maxlength="255" autocomplete="off" placeholder="operator@example.com" required>
+        </div>
+        <div class="form-field" id="managed-password-group">
+          <label for="managed-password">初始密码</label>
+          <input id="managed-password" type="password" minlength="8" maxlength="64" autocomplete="new-password" placeholder="8–64 个字符" required>
+        </div>
+        <div class="form-field">
+          <label for="managed-name">姓名</label>
+          <input id="managed-name" type="text" minlength="1" maxlength="40" autocomplete="off" placeholder="输入人员姓名" required>
+        </div>
+        <div class="user-form-grid">
+          <div class="form-field">
+            <label for="managed-role">角色</label>
+            <select id="managed-role" required>
+              <option value="ADMIN">品牌管理员</option>
+              <option value="NORMAL_USER">普通用户</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="managed-status">账号状态</label>
+            <select id="managed-status" required>
+              <option value="ACTIVE">启用</option>
+              <option value="DISABLED">停用</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="managed-brand">管理品牌</label>
+          <select id="managed-brand">
+            <option value="">不分配品牌</option>
+          </select>
+          <small class="field-hint" id="managed-brand-hint">启用的品牌管理员必须选择一个品牌。</small>
+        </div>
+        <p class="user-form-error" id="user-form-error" role="alert" hidden></p>
+      </div>
+      <footer class="user-dialog__actions">
+        <button class="ghost-button" id="cancel-user-dialog" type="button">取消</button>
+        <button class="primary-button" id="save-user" type="submit">保存人员</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <noscript><p class="noscript">此工作台需要启用 JavaScript 才能加载数据与图表。</p></noscript>
+</body>
+</html>

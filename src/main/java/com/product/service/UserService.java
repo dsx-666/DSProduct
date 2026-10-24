@@ -10,6 +10,7 @@ import com.product.pojo.dto.response.UserResponse;
 import com.product.pojo.dto.response.AdminUserListResponse;
 import com.product.pojo.po.User;
 import com.product.pojo.bo.AdminUserListItem;
+import com.product.pojo.dto.response.GenderStatsResponse;
 
 
 public interface UserService {
@@ -24,5 +25,6 @@ public interface UserService {
             Long userId,
             AdminUserUpdateRequest request,
             User operator);
+    GenderStatsResponse getGenderStats(Filter filter,User user);
 
 }
