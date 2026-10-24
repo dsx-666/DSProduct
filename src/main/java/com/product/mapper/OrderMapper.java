@@ -19,6 +19,71 @@ import java.util.Map;
 public interface OrderMapper extends BaseMapper<Order> {
     @Select("""
         <script>
+        select o.order_id as orderId,o.user_id as userId,o.order_date as orderDate
+        from `order` o
+        <if test="categories != null and !categories.isEmpty() or brands != null and !brands.isEmpty() or allowedBrands != null">
+          join order_item oi on oi.order_id=o.order_id join product p on p.product_id=oi.product_id
+        </if>
+        where o.order_status='completed' and o.user_id is not null
+          and o.order_date &gt;= #{filter.startTime} and o.order_date &lt; DATE_ADD(#{filter.endTime},INTERVAL 1 DAY)
+          <if test="categories != null and !categories.isEmpty()">AND p.category in <foreach collection="categories" item="v" open="(" separator="," close=")">#{v}</foreach></if>
+          <if test="brands != null and !brands.isEmpty()">AND p.brand in <foreach collection="brands" item="v" open="(" separator="," close=")">#{v}</foreach></if>
+          <if test="allowedBrands != null">
+            <choose><when test="allowedBrands.isEmpty()">AND 1=0</when><otherwise>AND p.brand in <foreach collection="allowedBrands" item="v" open="(" separator="," close=")">#{v}</foreach></otherwise></choose>
+          </if>
+        group by o.order_id,o.user_id,o.order_date
+        </script>
+    """)
+    List<Map<String,Object>> selectRepurchaseOrders(@Param("filter") Filter filter,
+            @Param("categories") List<String> categories,@Param("brands") List<String> brands,
+            @Param("allowedBrands") List<String> allowedBrands);
+
+    @Select("""
+        <script>
+        select distinct o.order_id as orderId,o.user_id as userId,o.order_date as orderDate,
+        <choose>
+          <when test="groupBy == 'category'">coalesce(p.category,'Other')</when>
+          <when test="groupBy == 'brand'">coalesce(p.brand,'Other')</when>
+          <when test="groupBy == 'day'">DATE_FORMAT(o.order_date,'%Y-%m-%d')</when>
+          <when test="groupBy == 'week'">DATE_FORMAT(DATE_SUB(DATE(o.order_date),INTERVAL WEEKDAY(o.order_date) DAY),'%Y-%m-%d')</when>
+          <when test="groupBy == 'month'">DATE_FORMAT(o.order_date,'%Y-%m')</when>
+        </choose> as groupKey
+        from `order` o
+        <if test="groupBy == 'category' or groupBy == 'brand' or categories != null and !categories.isEmpty() or brands != null and !brands.isEmpty() or allowedBrands != null">
+          left join order_item oi on oi.order_id=o.order_id left join product p on p.product_id=oi.product_id
+        </if>
+        where o.order_status='completed' and o.user_id is not null
+          and o.order_date &gt;= #{filter.startTime} and o.order_date &lt; DATE_ADD(#{filter.endTime},INTERVAL 1 DAY)
+          <if test="categories != null and !categories.isEmpty()">AND p.category in <foreach collection="categories" item="v" open="(" separator="," close=")">#{v}</foreach></if>
+          <if test="brands != null and !brands.isEmpty()">AND p.brand in <foreach collection="brands" item="v" open="(" separator="," close=")">#{v}</foreach></if>
+          <if test="allowedBrands != null"><choose><when test="allowedBrands.isEmpty()">AND 1=0</when><otherwise>AND p.brand in <foreach collection="allowedBrands" item="v" open="(" separator="," close=")">#{v}</foreach></otherwise></choose></if>
+        </script>
+    """)
+    List<Map<String,Object>> selectRepurchaseGroupOrders(@Param("filter") Filter filter,
+            @Param("categories") List<String> categories,@Param("brands") List<String> brands,
+            @Param("allowedBrands") List<String> allowedBrands,@Param("groupBy") String groupBy);
+
+    @Select("""
+        <script>
+        select o.order_status as status,count(distinct o.order_id) as orderCount
+        from `order` o
+        where o.order_date &gt;= #{filter.startTime} and o.order_date &lt; DATE_ADD(#{filter.endTime},INTERVAL 1 DAY)
+          <if test="categories != null and !categories.isEmpty() or brands != null and !brands.isEmpty() or allowedBrands != null">
+            AND EXISTS (select 1 from order_item oi join product p on p.product_id=oi.product_id
+              where oi.order_id=o.order_id
+              <if test="categories != null and !categories.isEmpty()">AND p.category in <foreach collection="categories" item="v" open="(" separator="," close=")">#{v}</foreach></if>
+              <if test="brands != null and !brands.isEmpty()">AND p.brand in <foreach collection="brands" item="v" open="(" separator="," close=")">#{v}</foreach></if>
+              <if test="allowedBrands != null"><choose><when test="allowedBrands.isEmpty()">AND 1=0</when><otherwise>AND p.brand in <foreach collection="allowedBrands" item="v" open="(" separator="," close=")">#{v}</foreach></otherwise></choose></if>
+            )
+          </if>
+        group by o.order_status
+        </script>
+    """)
+    List<Map<String,Object>> selectAfterSaleStatusCounts(@Param("filter") Filter filter,
+            @Param("categories") List<String> categories,@Param("brands") List<String> brands,
+            @Param("allowedBrands") List<String> allowedBrands);
+    @Select("""
+        <script>
             select o.order_id as orderId,
                    o.order_status as status,
                    o.order_date as createTime,

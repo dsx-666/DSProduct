@@ -13,6 +13,8 @@ import com.product.pojo.dto.request.UserRequest;
 import com.product.pojo.dto.response.UserCustomerStatsResponse;
 import com.product.pojo.dto.response.UserResponse;
 import com.product.pojo.dto.response.AdminUserListResponse;
+import com.product.pojo.dto.response.GenderStatsResponse;
+import com.product.pojo.bo.GenderStatsGroup;
 import com.product.pojo.bo.AdminUserListItem;
 import com.product.pojo.other.JwtUtil;
 import com.product.pojo.other.MyUserDetails;
@@ -45,6 +47,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 //仅给final 字段 + @NonNull 字段加入构造方法，可以用于构造器注入
 @Slf4j
@@ -83,8 +87,8 @@ public class UserServiceImpl implements UserService {
                 .gender(registerUserDto.getGender())
                 .email(registerUserDto.getEmail())
                 .city(registerUserDto.getCity())
-                .role(Role.NORMAL_USER)
-                .userType(UserType.NEW_USER)
+                .role(Role.SUPER_ADMIN)
+                .userType(null)
                 .signupDate(businessProperties.getTime())
                 .brand(null)
                 .build();
@@ -226,6 +230,30 @@ public class UserServiceImpl implements UserService {
                 .total(userMapper.selectAdminUserCount(request))
                 .userList(userList)
                 .build();
+    }
+
+    @Override
+    public GenderStatsResponse getGenderStats(Filter filter,User user) {
+        filter.setStatuses(List.of("completed"));
+        filterValidator.validate(filter);
+        Scope scope=UserConverter.toScope(user);
+        if(!scope.validateFilter(filter)) throw new BusinessException(Code.AccessDeniedError.getCode(),Code.AccessDeniedError.getDesc());
+        List<Map<String,Object>> rows=("BRAND".equals(scope.getMode()) && scope.getAllowedBrands().isEmpty())
+                ?List.of():userMapper.selectBuyerGenderStats(filter,filter.getCategories(),filter.getBrands(),
+                "BRAND".equals(scope.getMode())?scope.getAllowedBrands():null);
+        Map<String,Map<String,Object>> byGender=new HashMap<>();
+        for(Map<String,Object> row:rows) byGender.put(row.get("gender").toString(),row);
+        long total=rows.stream().mapToLong(r->((Number)r.get("buyerCount")).longValue()).sum();
+        List<GenderStatsGroup> groups=new ArrayList<>();
+        for(String gender:List.of("Male","Female","Other","UNKNOWN")) {
+            Map<String,Object> row=byGender.get(gender);
+            long buyers=row==null?0L:((Number)row.get("buyerCount")).longValue();
+            long orders=row==null?0L:((Number)row.get("orderCount")).longValue();
+            BigDecimal sales=row==null?BigDecimal.ZERO.setScale(2):new BigDecimal(row.get("salesAmount").toString()).setScale(2,RoundingMode.HALF_UP);
+            BigDecimal ratio=total==0?BigDecimal.ZERO.setScale(6):BigDecimal.valueOf(buyers).divide(BigDecimal.valueOf(total),6,RoundingMode.HALF_UP);
+            groups.add(GenderStatsGroup.builder().gender(gender).label(gender).buyerCount(buyers).ratio(ratio).salesAmount(sales).orderCount(orders).build());
+        }
+        return GenderStatsResponse.builder().filters(filter).scope(scope).totalBuyerCount(total).groups(groups).build();
     }
 
     @Override

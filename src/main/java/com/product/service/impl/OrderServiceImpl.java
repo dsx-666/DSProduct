@@ -18,6 +18,10 @@ import com.product.pojo.dto.response.OrderListResponse;
 import com.product.pojo.dto.response.OrderDetailResponse;
 import com.product.pojo.dto.response.OrderPaymentStatsResponse;
 import com.product.pojo.dto.response.MyOrderListResponse;
+import com.product.pojo.dto.request.RepurchaseStatsRequest;
+import com.product.pojo.dto.response.RepurchaseStatsResponse;
+import com.product.pojo.dto.response.AfterSaleStatsResponse;
+import com.product.pojo.bo.RepurchaseStatsGroup;
 import com.product.pojo.bo.QueryOrderListResult;
 import com.product.pojo.po.User;
 import com.product.pojo.bo.Scope;
@@ -475,6 +479,85 @@ public class OrderServiceImpl implements OrderService {
                 .map(this::toOrderDetailItem)
                 .toList();
         return buildOwnOrderDetail(orderDetail,itemList);
+    }
+
+    @Override
+    public RepurchaseStatsResponse getRepurchaseStats(RepurchaseStatsRequest request,User user) {
+        String groupBy=request.getGroupBy();
+        if(groupBy!=null && !List.of("day","week","month","category","brand").contains(groupBy))
+            throw myOrderBadRequest("groupBy参数错误");
+        Filter filter=Filter.builder().startTime(request.getStartTime()).endTime(request.getEndTime())
+                .categories(request.getCategories()).brands(request.getBrands()).statuses(List.of("completed")).build();
+        filterValidator.validate(filter);
+        Scope scope=UserConverter.toScope(user);
+        if(!scope.validateFilter(filter)) throw new BusinessException(Code.AccessDeniedError.getCode(),Code.AccessDeniedError.getDesc());
+        List<String> allowed="BRAND".equals(scope.getMode())?scope.getAllowedBrands():null;
+        List<Map<String,Object>> orders=(allowed!=null&&allowed.isEmpty())?List.of():
+                orderMapper.selectRepurchaseOrders(filter,filter.getCategories(),filter.getBrands(),allowed);
+        List<Map<String,Object>> grouped=groupBy==null?List.of():((allowed!=null&&allowed.isEmpty())?List.of():
+                orderMapper.selectRepurchaseGroupOrders(filter,filter.getCategories(),filter.getBrands(),allowed,groupBy));
+        RepurchaseAggregate overall=aggregateRepurchase(orders,"eligible");
+        Map<String,List<Map<String,Object>>> groupedRows=new TreeMap<>();
+        for(Map<String,Object> row:grouped) groupedRows.computeIfAbsent(
+                row.get("groupKey")==null?"Other":row.get("groupKey").toString(),k->new ArrayList<>()).add(row);
+        List<RepurchaseStatsGroup> groups=groupedRows.entrySet().stream().map(entry->{
+            RepurchaseAggregate a=aggregateRepurchase(entry.getValue(),"eligible");
+            return RepurchaseStatsGroup.builder().key(entry.getKey()).label(entry.getKey())
+                    .eligibleBuyerCount(a.buyers).repurchaseBuyerCount(a.repeatBuyers)
+                    .repurchaseRate(a.buyers==0?null:ratio(a.repeatBuyers,a.buyers))
+                    .repeatOrderCount(a.repeatOrders).averageDaysBetweenOrders(a.averageDays).build();
+        }).toList();
+        return RepurchaseStatsResponse.builder().filters(filter).scope(scope)
+                .eligibleBuyerCount(overall.buyers).repurchaseBuyerCount(overall.repeatBuyers)
+                .repurchaseRate(overall.buyers==0?null:ratio(overall.repeatBuyers,overall.buyers))
+                .repeatOrderCount(overall.repeatOrders).averageDaysBetweenOrders(overall.averageDays)
+                .status(overall.buyers==0?"NO_DATA":"AVAILABLE").groupBy(groupBy).groups(groups).build();
+    }
+
+    private RepurchaseAggregate aggregateRepurchase(List<Map<String,Object>> rows,String ignored) {
+        Map<Long,List<LocalDate>> dates=new HashMap<>();
+        for(Map<String,Object> row:rows) {
+            if(row.get("userId")==null || row.get("orderDate")==null) continue;
+            long userId=((Number)row.get("userId")).longValue();
+            dates.computeIfAbsent(userId,k->new ArrayList<>()).add(toLocalDateTime(row.get("orderDate")).toLocalDate());
+        }
+        long repeatBuyers=0, repeatOrders=0; List<Long> intervals=new ArrayList<>();
+        for(List<LocalDate> buyerDates:dates.values()) {
+            buyerDates.sort(Comparator.naturalOrder());
+            if(buyerDates.size()>1) { repeatBuyers++; repeatOrders+=buyerDates.size()-1;
+                for(int i=1;i<buyerDates.size();i++) intervals.add(java.time.temporal.ChronoUnit.DAYS.between(buyerDates.get(i-1),buyerDates.get(i)));
+            }
+        }
+        BigDecimal average=intervals.isEmpty()?null:BigDecimal.valueOf(intervals.stream().mapToLong(Long::longValue).sum())
+                .divide(BigDecimal.valueOf(intervals.size()),2,RoundingMode.HALF_UP);
+        return new RepurchaseAggregate(dates.size(),repeatBuyers,repeatOrders,average);
+    }
+
+    private BigDecimal ratio(long count,long total) {
+        return total==0?null:BigDecimal.valueOf(count).divide(BigDecimal.valueOf(total),6,RoundingMode.HALF_UP);
+    }
+
+    private record RepurchaseAggregate(long buyers,long repeatBuyers,long repeatOrders,BigDecimal averageDays) {}
+
+    @Override
+    public AfterSaleStatsResponse getAfterSaleStats(Filter filter,User user) {
+        filter.setStatuses(List.of());
+        filterValidator.validate(filter);
+        Scope scope=UserConverter.toScope(user);
+        if(!scope.validateFilter(filter)) throw new BusinessException(Code.AccessDeniedError.getCode(),Code.AccessDeniedError.getDesc());
+        List<String> allowed="BRAND".equals(scope.getMode())?scope.getAllowedBrands():null;
+        List<Map<String,Object>> rows=(allowed!=null&&allowed.isEmpty())?List.of():orderMapper.selectAfterSaleStatusCounts(
+                filter,filter.getCategories(),filter.getBrands(),allowed);
+        Map<String,Long> counts=new HashMap<>();
+        rows.forEach(r->counts.put(r.get("status").toString(),((Number)r.get("orderCount")).longValue()));
+        List<String> statuses=List.of("processing","shipped","completed","cancelled","returned");
+        List<AfterSaleStatsResponse.StatusCount> statusCounts=statuses.stream().map(s->AfterSaleStatsResponse.StatusCount.builder().status(s).orderCount(counts.getOrDefault(s,0L)).build()).toList();
+        long total=statusCounts.stream().mapToLong(AfterSaleStatsResponse.StatusCount::getOrderCount).sum();
+        long cancelled=counts.getOrDefault("cancelled",0L),returned=counts.getOrDefault("returned",0L);
+        return AfterSaleStatsResponse.builder().filters(filter).scope(scope).totalOrderCount(total)
+                .cancelledOrderCount(cancelled).returnedOrderCount(returned)
+                .cancelRate(total==0?null:ratio(cancelled,total)).returnRate(total==0?null:ratio(returned,total))
+                .status(total==0?"NO_DATA":"AVAILABLE").statusCounts(statusCounts).build();
     }
 
     private void validateMyOrderListRequest(MyOrderListRequest request) {

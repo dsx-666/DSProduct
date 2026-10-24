@@ -8,6 +8,10 @@ import com.product.pojo.dto.request.ProductRankingRequest;
 import com.product.pojo.dto.response.ProductBrandResponse;
 import com.product.pojo.dto.response.ProductCategoryStatsResponse;
 import com.product.pojo.dto.response.ProductRankingResponse;
+import com.product.pojo.dto.request.ReviewInsightsRequest;
+import com.product.pojo.dto.request.CustomerSalesRankingRequest;
+import com.product.pojo.dto.response.ReviewInsightsResponse;
+import com.product.pojo.dto.response.CustomerSalesRankingResponse;
 import com.product.pojo.other.MyUserDetails;
 import com.product.pojo.vo.ProductBrandVo;
 import com.product.pojo.vo.ProductCategoryStatsVo;
@@ -37,7 +41,7 @@ public class ProductController {
         return Result.success(productService
                 .getCategories());
     }
-
+    // TODO:有点问题需要修改
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping("/product/ranking")
     public Result<ProductRankingVo> getProductRanking(
@@ -98,6 +102,30 @@ public class ProductController {
                         .scope(productBrandResponse.getScope())
                         .build()
         );
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @GetMapping("/product/review-insights")
+    public Result<ReviewInsightsResponse> getReviewInsights(
+            @AuthenticationPrincipal MyUserDetails principal,
+            @ModelAttribute ReviewInsightsRequest request,
+            HttpServletRequest httpRequest) {
+        if(!Set.of("startTime","endTime","category","brand","productId","page","num","sort")
+                .containsAll(httpRequest.getParameterMap().keySet()))
+            throw new BusinessException(Code.ParamError.getCode(),"参数错误");
+        return Result.success(productService.getReviewInsights(request,principal.getUser()));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    @GetMapping("/product/customer-sales-ranking")
+    public Result<CustomerSalesRankingResponse> getCustomerSalesRanking(
+            @AuthenticationPrincipal MyUserDetails principal,
+            @ModelAttribute CustomerSalesRankingRequest request,
+            HttpServletRequest httpRequest) {
+        if(!Set.of("startTime","endTime","category","brand","segment","metric","limit")
+                .containsAll(httpRequest.getParameterMap().keySet()))
+            throw new BusinessException(Code.ParamError.getCode(),"参数错误");
+        return Result.success(productService.getCustomerSalesRanking(request,principal.getUser()));
     }
 
 

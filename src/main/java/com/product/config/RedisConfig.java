@@ -10,6 +10,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @Configuration
 public class RedisConfig {
 
+    // 创建支持 JSON 对象的 RedisTemplate，统一配置 key 和 value 的序列化方式。
     @Bean("jsonRedisTemplate")
     public RedisTemplate<String, Object> jsonRedisTemplate(
             RedisConnectionFactory factory) {

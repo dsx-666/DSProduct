@@ -2,9 +2,9 @@ package com.product.service.impl;
 
 import com.product.pojo.other.JwtUtil;
 import com.product.service.JwtBlacklistService;
+import com.product.service.RedisService;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -20,13 +20,14 @@ public class JwtBlacklistServiceImpl implements JwtBlacklistService {
     private static final String JWT_BLACKLIST_KEY = "jwt:blacklist:";
     private static final String LOGOUT_VALUE = "logout";
 
-    private final StringRedisTemplate stringRedisTemplate;
+    private final RedisService redisService;
     private final JwtUtil jwtUtil;
 
+    // 用户退出时把当前令牌放进黑名单，保存时间只到令牌自然过期。
     @Override
     public void addBlacklist(String jwtToken) {
         String redisKey = getRedisKey(jwtToken);
-        if(Boolean.TRUE.equals(stringRedisTemplate.hasKey(redisKey))){
+        if(redisService.hasKey(redisKey)){
             return;
         }
         Claims claims = jwtUtil.parseToken(jwtToken);
@@ -36,18 +37,16 @@ public class JwtBlacklistServiceImpl implements JwtBlacklistService {
         if(expireTime.isZero() || expireTime.isNegative()){
             return;
         }
-        stringRedisTemplate.opsForValue().set(
-                redisKey,LOGOUT_VALUE,expireTime
-        );
+        redisService.setString(redisKey,LOGOUT_VALUE,expireTime);
     }
 
+    // 每次鉴权时检查令牌是否已经被退出操作作废。
     @Override
     public boolean isBlacklisted(String jwtToken) {
-        return Boolean.TRUE.equals(
-                stringRedisTemplate.hasKey(getRedisKey(jwtToken))
-        );
+        return redisService.hasKey(getRedisKey(jwtToken));
     }
 
+    // 对令牌做 SHA-256 后再当 Redis key，避免把完整 JWT 暴露在缓存里。
     private String getRedisKey(String jwtToken) {
         try{
             // 得到签名算法

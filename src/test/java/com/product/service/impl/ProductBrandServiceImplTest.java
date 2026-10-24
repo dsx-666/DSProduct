@@ -4,12 +4,12 @@ import com.product.enums.Role;
 import com.product.mapper.ProductMapper;
 import com.product.pojo.dto.response.ProductBrandResponse;
 import com.product.pojo.po.User;
+import com.product.service.RedisService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.Arrays;
 import java.util.List;
@@ -24,7 +24,7 @@ class ProductBrandServiceImplTest {
     @Mock
     private ProductMapper productMapper;
     @Mock
-    private StringRedisTemplate stringRedisTemplate;
+    private RedisService redisService;
     @Mock
     private FilterValidator filterValidator;
 
@@ -33,7 +33,7 @@ class ProductBrandServiceImplTest {
     @BeforeEach
     void setUp() {
         productService = new ProductServiceImpl(
-                productMapper,stringRedisTemplate,filterValidator
+                productMapper,redisService,filterValidator
         );
     }
 

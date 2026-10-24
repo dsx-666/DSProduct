@@ -6,6 +6,10 @@ import com.product.pojo.dto.request.ProductRankingRequest;
 import com.product.pojo.dto.response.ProductBrandResponse;
 import com.product.pojo.dto.response.ProductCategoryStatsResponse;
 import com.product.pojo.dto.response.ProductRankingResponse;
+import com.product.pojo.dto.request.ReviewInsightsRequest;
+import com.product.pojo.dto.request.CustomerSalesRankingRequest;
+import com.product.pojo.dto.response.ReviewInsightsResponse;
+import com.product.pojo.dto.response.CustomerSalesRankingResponse;
 import com.product.pojo.po.User;
 
 import java.util.List;
@@ -24,4 +28,8 @@ public interface ProductService {
     ProductCategoryStatsResponse getProductCategoryStats(Filter filter,User user);
 
     ProductBrandResponse getBrands(User user);
+
+    ReviewInsightsResponse getReviewInsights(ReviewInsightsRequest request, User user);
+
+    CustomerSalesRankingResponse getCustomerSalesRanking(CustomerSalesRankingRequest request, User user);
 }
