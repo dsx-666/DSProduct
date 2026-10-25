@@ -21,6 +21,7 @@
 | P1 | 人员查询 | 超级管理员按姓名、邮箱、用户 ID、角色、状态分页查询 `/api/admin/users` |
 | P2 | 新增管理员 | 提交邮箱、初始密码、姓名、单一品牌和状态到 `POST /api/admin/users` |
 | P3 | 编辑人员 | 使用服务端版本号最小化 PATCH 姓名、品牌、状态；保护本人和超级管理员账号；当前数据库存在 `chk_role_user_type` 时暂不从界面提交角色转换 |
+| R1 | 实时更新 | 登录后以一次性短效票据建立 `/ws/updates`；MQ 更新事件触发相关视图自动重新读取，支持心跳与断线重连 |
 
 所有区域包含加载、空结果、失败和重试状态。快速切换筛选时会取消旧请求，并以请求版本阻止旧响应覆盖新数据。401 会清除会话并返回登录页；403、404、409 与 500 分别显示对应的恢复提示。
 
@@ -28,13 +29,13 @@
 
 ## 本地运行
 
-先启动现有 Spring Boot 服务（默认 `http://127.0.0.1:8080`），再在仓库根目录运行：
+先启动 RabbitMQ 和现有 Spring Boot 服务（默认 `http://127.0.0.1:8080`），再在仓库根目录运行：
 
 ```powershell
 node frontend/serve.mjs
 ```
 
-打开 `http://127.0.0.1:4173`。`serve.mjs` 只负责静态文件和把 `/api/*` 原样转发到现有后端，不实现业务接口，也不修改后端代码。
+打开 `http://127.0.0.1:4173`。`serve.mjs` 负责静态文件，并把 `/api/*` 与 `/ws/*` 原样转发到后端。
 
 可用环境变量：
 
@@ -50,6 +51,7 @@ node frontend/serve.mjs
 
 - 统一响应：`{ code, message, data }`，成功 `code = 200`。
 - 认证：`Authorization: Bearer <JWT>`；令牌只保存在 `sessionStorage`，关闭标签页后失效。
+- 实时连接：先以 Bearer JWT 调用 `POST /api/realtime/tickets` 换取 30 秒内单次有效的票据，再连接 `GET /ws/updates?ticket=...`；长期 JWT 不放进 WebSocket URL。
 - 公共筛选参数：`startTime`、`endTime`、重复键 `category`、重复键 `brand`。
 - 订单列表额外参数：`keyWord`、重复键 `statuses`、`page`、`num`；当前界面只开放商品名称搜索。
 - TOP10 使用 `metric=amount|quantity`；趋势使用 `granularity=day|week|month`。
@@ -61,6 +63,8 @@ node frontend/serve.mjs
 ```text
 POST /api/auth/login
 GET  /api/auth/me
+POST /api/realtime/tickets
+GET  /ws/updates?ticket=...
 GET  /api/categories
 GET  /api/brands
 GET  /api/orders/kpi
@@ -82,9 +86,11 @@ GET  /api/brand/products/{productId}/buyers
 
 经营首页只请求当前控制器实际暴露的接口，不使用演示数据伪装成功。超级管理员通过 A11 获得真实品牌多选；人员管理接口仅在用户管理区域按需请求，前端隐藏入口同样不替代后端鉴权。
 
-### 当前仓库后端边界
+### 实时更新链路
 
-本次没有修改后端。前端已按当前 Java Controller 接入 A1–A8、A11 与 P1–P3。数据库若保留 `chk_role_user_type`，直接把已有普通用户与管理员角色互转可能由数据库拒绝；前端因此只提交真正变化的字段，并暂时锁定角色选择，避免把姓名、品牌或状态编辑误变成角色更新。
+人员注册、新增管理员和编辑人员在数据库事务提交后发布应用事件；异步监听器将事件投递到 RabbitMQ topic exchange，每个应用实例使用独立临时队列消费并广播给本实例的 WebSocket 连接。消息只声明数据类型、动作和资源 ID，前端收到后仍通过原有鉴权接口读取数据。RabbitMQ 默认连接 `localhost:5672` 的 `guest/guest`，可用 `RABBITMQ_HOST`、`RABBITMQ_PORT`、`RABBITMQ_USERNAME`、`RABBITMQ_PASSWORD` 覆盖。
+
+数据库若保留 `chk_role_user_type`，直接把已有普通用户与管理员角色互转可能由数据库拒绝；前端因此只提交真正变化的字段，并暂时锁定角色选择，避免把姓名、品牌或状态编辑误变成角色更新。
 
 ## 文件结构
 
@@ -117,5 +123,6 @@ frontend/
 8. 在 1440px、1024px 和 390px 检查导航、筛选、图表、表格横向滚动、人员弹窗和键盘焦点。
 9. 上下滚动经营概览、订单追溯和用户管理，确认侧栏当前导航自动跟随可视区域切换。
 10. 打开商品经营区，检查 B8 生命周期分层；切换 B9 当前筛选/全量历史并打开居中商品详情窗口，确认性别环图、新老客条形图、评价筛选和购买用户 ID 查询。
+11. 同时登录两个浏览器窗口，在一个窗口新增或编辑人员，确认另一个窗口显示“数据已自动同步”且人员列表更新；停止并恢复 RabbitMQ 或后端，确认 WebSocket 自动重连。
 
 本次实现只新增 `frontend/` 静态前端和开发代理，没有修改 Spring Boot、数据库或后端配置。

@@ -10,6 +10,7 @@ import com.product.pojo.dto.request.AdminUserCreateRequest;
 import com.product.pojo.dto.request.AdminUserUpdateRequest;
 import com.product.pojo.other.JwtUtil;
 import com.product.pojo.po.User;
+import com.product.realtime.event.DataChangeEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +34,7 @@ class AdminUserWriteServiceImplTest {
     @Mock JwtUtil jwtUtil;
     @Mock BusinessProperties businessProperties;
     @Mock FilterValidator filterValidator;
+    @Mock DataChangeEventPublisher dataChangeEventPublisher;
 
     private UserServiceImpl userService;
     private User operator;
@@ -41,7 +43,8 @@ class AdminUserWriteServiceImplTest {
     void setUp() {
         userService = new UserServiceImpl(
                 userMapper,passwordEncoder,authenticationManager,
-                jwtUtil,businessProperties,filterValidator
+                jwtUtil,businessProperties,filterValidator,
+                dataChangeEventPublisher
         );
         operator = User.builder()
                 .userId(9001L)
@@ -80,6 +83,9 @@ class AdminUserWriteServiceImplTest {
         assertEquals("NeoTech",result.getBrand());
         assertEquals("ACTIVE",result.getStatus());
         assertEquals(0L,result.getVersion());
+        verify(dataChangeEventPublisher).publishUserChanged(
+                "CREATED",9005L,9001L
+        );
     }
 
     @Test
@@ -129,6 +135,9 @@ class AdminUserWriteServiceImplTest {
         assertEquals("Orion",result.getBrand());
         assertEquals(4L,result.getVersion());
         verify(userMapper).updateAdminUserWithVersion(target,3L);
+        verify(dataChangeEventPublisher).publishUserChanged(
+                "UPDATED",9005L,9001L
+        );
     }
 
     @Test

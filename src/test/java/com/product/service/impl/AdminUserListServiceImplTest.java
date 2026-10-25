@@ -7,6 +7,7 @@ import com.product.pojo.bo.AdminUserListItem;
 import com.product.pojo.dto.request.AdminUserListRequest;
 import com.product.pojo.dto.response.AdminUserListResponse;
 import com.product.pojo.other.JwtUtil;
+import com.product.realtime.event.DataChangeEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +40,8 @@ class AdminUserListServiceImplTest {
     private BusinessProperties businessProperties;
     @Mock
     private FilterValidator filterValidator;
+    @Mock
+    private DataChangeEventPublisher dataChangeEventPublisher;
 
     private UserServiceImpl userService;
 
@@ -46,7 +49,8 @@ class AdminUserListServiceImplTest {
     void setUp() {
         userService = new UserServiceImpl(
                 userMapper,passwordEncoder,authenticationManager,
-                jwtUtil,businessProperties,filterValidator
+                jwtUtil,businessProperties,filterValidator,
+                dataChangeEventPublisher
         );
     }
 

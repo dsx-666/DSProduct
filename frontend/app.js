@@ -132,6 +132,17 @@
         buyers: { page: 1, pageSize: 10, total: 0, keyword: "", rows: null }
       }
     },
+    realtime: {
+      socket: null,
+      generation: 0,
+      reconnectAttempt: 0,
+      reconnectTimer: null,
+      heartbeatTimer: null,
+      pongTimer: null,
+      refreshTimer: null,
+      pendingEvents: [],
+      seenEventIds: new Set()
+    },
     charts: {}
   };
 
@@ -153,8 +164,15 @@
     bindEvents();
     initializeCharts();
     window.addEventListener("pageshow", event => {
-      if (event.persisted && state.token) bootstrapDashboard().catch(() => {});
+      if (event.persisted && state.token) {
+        if (!isRealtimeOpen()) connectRealtime();
+        bootstrapDashboard().catch(() => {});
+      }
     });
+    window.addEventListener("online", () => {
+      if (state.token && !isRealtimeOpen()) connectRealtime();
+    });
+    window.addEventListener("beforeunload", stopRealtime);
     if (state.token) restoreSession();
     else showAuth();
   }
@@ -369,6 +387,7 @@
       const data = await api("/api/auth/me");
       applySession(data);
       showApp();
+      connectRealtime();
       await bootstrapDashboard();
     } catch (error) {
       clearSession();
@@ -395,6 +414,7 @@
       sessionStorage.setItem(TOKEN_KEY, token);
       applySession(data);
       showApp();
+      connectRealtime();
       await bootstrapDashboard();
     } catch (error) {
       showLoginError(readableError(error, "登录失败，请检查账号、密码和后端服务。"));
@@ -798,7 +818,10 @@
     ]);
     if (version !== state.requestVersion) return;
     const failures = results.filter(item => item.status === "rejected" && item.reason?.name !== "AbortError");
-    setConnection(failures.length ? "error" : "online", failures.length ? `${failures.length} 项数据未加载` : "数据已连接");
+    if (failures.length) setConnection("error", `${failures.length} 项数据未加载`);
+    else if (isRealtimeOpen()) setConnection("online", "实时更新已连接");
+    else if (state.realtime.socket?.readyState === WebSocket.CONNECTING) setConnection("loading", "正在连接实时更新");
+    else setConnection("error", "实时连接暂不可用");
     els.lastUpdated.textContent = `更新于 ${dateTimeFormat.format(new Date()).replaceAll("/", ".")}`;
     updateActiveScopeText();
     if (announce) showToast(failures.length ? "刷新完成，部分数据失败" : "数据已刷新", failures.length ? "失败区域已保留明确提示，可单独重试。" : "所有经营数据已按当前范围更新。", failures.length ? "error" : "success");
@@ -2097,6 +2120,175 @@
     return payload;
   }
 
+  async function connectRealtime() {
+    if (!state.token || typeof WebSocket === "undefined") return;
+    const generation = ++state.realtime.generation;
+    clearTimeout(state.realtime.reconnectTimer);
+    state.realtime.reconnectTimer = null;
+    clearRealtimeHeartbeat();
+    if (state.realtime.socket) {
+      state.realtime.socket.onclose = null;
+      state.realtime.socket.close(1000, "reconnect");
+      state.realtime.socket = null;
+    }
+    setConnection("loading", "正在连接实时更新");
+    try {
+      const ticketResponse = await api("/api/realtime/tickets", { method: "POST" });
+      if (generation !== state.realtime.generation || !state.token) return;
+      const ticket = String(pick(ticketResponse, ["ticket"], ""));
+      if (!ticket) throw new ApiError("后端未返回实时连接票据。");
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const url = new URL("/ws/updates", `${protocol}//${window.location.host}`);
+      url.searchParams.set("ticket", ticket);
+      const socket = new WebSocket(url);
+      state.realtime.socket = socket;
+
+      socket.addEventListener("open", () => {
+        if (generation !== state.realtime.generation) return;
+        state.realtime.reconnectAttempt = 0;
+        setConnection("online", "实时更新已连接");
+        startRealtimeHeartbeat(socket, generation);
+      });
+      socket.addEventListener("message", message => {
+        if (generation === state.realtime.generation) handleRealtimeMessage(message.data);
+      });
+      socket.addEventListener("close", () => {
+        if (generation !== state.realtime.generation) return;
+        state.realtime.socket = null;
+        clearRealtimeHeartbeat();
+        scheduleRealtimeReconnect(generation);
+      });
+      socket.addEventListener("error", () => {
+        if (generation === state.realtime.generation) {
+          setConnection("error", "实时连接异常");
+        }
+      });
+    } catch (error) {
+      if (generation !== state.realtime.generation || !state.token) return;
+      setConnection("error", "实时连接暂不可用");
+      scheduleRealtimeReconnect(generation);
+    }
+  }
+
+  function handleRealtimeMessage(rawMessage) {
+    let message;
+    try {
+      message = JSON.parse(rawMessage);
+    } catch {
+      return;
+    }
+    if (message.type === "PONG") {
+      clearTimeout(state.realtime.pongTimer);
+      state.realtime.pongTimer = null;
+      return;
+    }
+    if (message.type !== "DATA_CHANGED" || !message.event) return;
+    const eventId = String(message.event.eventId || "");
+    if (eventId && state.realtime.seenEventIds.has(eventId)) return;
+    if (eventId) {
+      state.realtime.seenEventIds.add(eventId);
+      if (state.realtime.seenEventIds.size > 200) {
+        const oldest = state.realtime.seenEventIds.values().next().value;
+        state.realtime.seenEventIds.delete(oldest);
+      }
+    }
+    state.realtime.pendingEvents.push(message.event);
+    clearTimeout(state.realtime.refreshTimer);
+    state.realtime.refreshTimer = setTimeout(flushRealtimeEvents, 450);
+  }
+
+  async function flushRealtimeEvents() {
+    const events = state.realtime.pendingEvents.splice(0);
+    state.realtime.refreshTimer = null;
+    if (!events.length || !state.token) return;
+    const currentUserId = String(pick(state.user, ["userId", "id"], ""));
+    const userEvents = events.filter(event => event.topic === "USERS_CHANGED");
+    const currentUserChanged = userEvents.some(event =>
+      String(event.entityId ?? "") === currentUserId
+    );
+    const visibleUserListChanged = userEvents.length
+      && canManageUsers()
+      && state.people.loaded;
+    const workspaceChanged = events.some(event =>
+      ["DASHBOARD_CHANGED", "ORDERS_CHANGED", "PRODUCTS_CHANGED"].includes(event.topic)
+    );
+    if (!currentUserChanged && !visibleUserListChanged && !workspaceChanged) return;
+    try {
+      if (currentUserChanged) {
+        const session = await api("/api/auth/me");
+        applySession(session);
+        await loadBrands();
+      }
+      const updates = [];
+      if (workspaceChanged || currentUserChanged) updates.push(refreshWorkspace());
+      if (visibleUserListChanged) updates.push(loadUsers());
+      const results = await Promise.allSettled(updates);
+      const failure = results.find(result => result.status === "rejected");
+      if (failure) throw failure.reason;
+      showToast("数据已自动同步", "已根据实时更新通知重新读取最新数据。", "success");
+    } catch (error) {
+      if (!state.token) {
+        showAuth();
+      } else if (error.status !== 401) {
+        showToast("自动同步失败", "实时通知已收到，请使用刷新按钮重试。", "error");
+      }
+    }
+  }
+
+  function startRealtimeHeartbeat(socket, generation) {
+    clearRealtimeHeartbeat();
+    state.realtime.heartbeatTimer = setInterval(() => {
+      if (generation !== state.realtime.generation || socket.readyState !== WebSocket.OPEN) return;
+      socket.send(JSON.stringify({ type: "PING" }));
+      clearTimeout(state.realtime.pongTimer);
+      state.realtime.pongTimer = setTimeout(() => {
+        if (socket.readyState === WebSocket.OPEN) socket.close(4000, "heartbeat timeout");
+      }, 10000);
+    }, 25000);
+  }
+
+  function scheduleRealtimeReconnect(generation) {
+    if (generation !== state.realtime.generation || !state.token || state.realtime.reconnectTimer) return;
+    const attempt = state.realtime.reconnectAttempt++;
+    const delay = Math.min(30000, 1000 * (2 ** Math.min(attempt, 5))) + Math.floor(Math.random() * 500);
+    setConnection("error", "实时连接重试中");
+    state.realtime.reconnectTimer = setTimeout(() => {
+      state.realtime.reconnectTimer = null;
+      connectRealtime();
+    }, delay);
+  }
+
+  function isRealtimeOpen() {
+    return state.realtime.socket?.readyState === WebSocket.OPEN;
+  }
+
+  function stopRealtime() {
+    state.realtime.generation += 1;
+    clearRealtimeTimers();
+    state.realtime.pendingEvents.length = 0;
+    state.realtime.seenEventIds.clear();
+    if (state.realtime.socket) {
+      state.realtime.socket.onclose = null;
+      state.realtime.socket.close(1000, "session ended");
+      state.realtime.socket = null;
+    }
+  }
+
+  function clearRealtimeTimers() {
+    clearTimeout(state.realtime.reconnectTimer);
+    clearTimeout(state.realtime.refreshTimer);
+    state.realtime.reconnectTimer = null;
+    state.realtime.refreshTimer = null;
+    clearRealtimeHeartbeat();
+  }
+
+  function clearRealtimeHeartbeat() {
+    clearInterval(state.realtime.heartbeatTimer);
+    clearTimeout(state.realtime.pongTimer);
+    state.realtime.heartbeatTimer = null;
+    state.realtime.pongTimer = null;
+  }
+
   function showAuth() {
     els.appShell.hidden = true;
     els.authScreen.hidden = false;
@@ -2127,6 +2319,7 @@
   }
 
   function clearSession() {
+    stopRealtime();
     state.token = "";
     state.csrfToken = "";
     state.user = null;

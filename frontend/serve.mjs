@@ -55,10 +55,40 @@ function serveStatic(request, response) {
   }
 }
 
-http.createServer((request, response) => {
+const server = http.createServer((request, response) => {
   if (request.url?.startsWith("/api/")) proxyApi(request, response);
   else serveStatic(request, response);
-}).listen(port, "127.0.0.1", () => {
+});
+
+server.on("upgrade", (request, socket, head) => {
+  if (!request.url?.startsWith("/ws/")) {
+    socket.destroy();
+    return;
+  }
+  const target = new URL(request.url, apiOrigin);
+  const upstreamRequest = http.request(target, {
+    method: "GET",
+    headers: { ...request.headers, host: apiOrigin.host }
+  });
+  upstreamRequest.on("upgrade", (upstreamResponse, upstreamSocket, upstreamHead) => {
+    const statusLine = `HTTP/1.1 ${upstreamResponse.statusCode} ${upstreamResponse.statusMessage}\r\n`;
+    const headers = [];
+    for (let index = 0; index < upstreamResponse.rawHeaders.length; index += 2) {
+      headers.push(`${upstreamResponse.rawHeaders[index]}: ${upstreamResponse.rawHeaders[index + 1]}`);
+    }
+    socket.write(`${statusLine}${headers.join("\r\n")}\r\n\r\n`);
+    if (upstreamHead.length) socket.write(upstreamHead);
+    if (head.length) upstreamSocket.write(head);
+    upstreamSocket.pipe(socket).pipe(upstreamSocket);
+  });
+  upstreamRequest.on("response", response => {
+    socket.end(`HTTP/1.1 ${response.statusCode || 502} ${response.statusMessage || "Bad Gateway"}\r\n\r\n`);
+  });
+  upstreamRequest.on("error", () => socket.destroy());
+  upstreamRequest.end();
+});
+
+server.listen(port, "127.0.0.1", () => {
   console.log(`衡账前端：http://127.0.0.1:${port}`);
   console.log(`API 代理：${apiOrigin.origin}`);
 });

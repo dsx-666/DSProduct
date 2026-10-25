@@ -44,7 +44,8 @@ public class SpringSecurityConfig {
                 .authorizeHttpRequests(auth ->
                         auth
                         .requestMatchers("/api/auth/register",
-                                "/api/auth/login")
+                                "/api/auth/login",
+                                "/ws/updates")
                         .permitAll()
                         .requestMatchers("/api/admin/**")
                         .hasRole("SUPER_ADMIN")

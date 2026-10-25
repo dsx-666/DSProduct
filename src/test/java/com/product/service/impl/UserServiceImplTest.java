@@ -9,6 +9,7 @@ import com.product.pojo.dto.request.Filter;
 import com.product.pojo.dto.response.UserCustomerStatsResponse;
 import com.product.pojo.other.JwtUtil;
 import com.product.pojo.po.User;
+import com.product.realtime.event.DataChangeEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +45,8 @@ class UserServiceImplTest {
     private BusinessProperties businessProperties;
     @Mock
     private FilterValidator filterValidator;
+    @Mock
+    private DataChangeEventPublisher dataChangeEventPublisher;
 
     private UserServiceImpl userService;
 
@@ -55,7 +58,8 @@ class UserServiceImplTest {
                 passwordAuthenticationManager,
                 jwtUtil,
                 businessProperties,
-                filterValidator
+                filterValidator,
+                dataChangeEventPublisher
         );
     }
 

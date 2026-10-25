@@ -28,3 +28,17 @@ spring:
       username: default
       password: 123589674xing
       database: 0
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        default-requeue-rejected: false
+
+realtime:
+  ticket-ttl: 30s
+  allowed-origins:
+    - "http://127.0.0.1:4173"
+    - "http://localhost:4173"

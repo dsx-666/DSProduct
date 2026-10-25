@@ -25,6 +25,7 @@ import com.product.enums.Code;
 import com.product.mapper.UserMapper;
 import com.product.enums.UserType;
 import com.product.security.token.PasswordAuthenticationToken;
+import com.product.realtime.event.DataChangeEventPublisher;
 import com.product.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +63,7 @@ public class UserServiceImpl implements UserService {
     private final JwtUtil jwtUtil;
     private final BusinessProperties businessProperties;
     private final FilterValidator filterValidator;
+    private final DataChangeEventPublisher dataChangeEventPublisher;
     @Override
     // 事务同成功同失败
     @Transactional(rollbackFor = Exception.class)
@@ -99,6 +101,9 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(Code.UniqueError.getCode(),
                     "邮箱" + Code.UniqueError.getDesc());
         }
+        dataChangeEventPublisher.publishUserChanged(
+                "CREATED", user.getUserId(), user.getUserId()
+        );
         // 返回给前端数据
 
         return UserResponse.builder()
@@ -294,6 +299,9 @@ public class UserServiceImpl implements UserService {
         }catch (DuplicateKeyException e){
             throw new ApiHttpException(HttpStatus.CONFLICT,409,"邮箱已被占用");
         }
+        dataChangeEventPublisher.publishUserChanged(
+                "CREATED", user.getUserId(), operator.getUserId()
+        );
         return toAdminUserListItem(user);
     }
     // 使用了乐观锁
@@ -368,6 +376,9 @@ public class UserServiceImpl implements UserService {
                     "人员信息已被修改，请重新查询后再提交");
         }
         target.setLockVersion(request.getVersion()+1);
+        dataChangeEventPublisher.publishUserChanged(
+                "UPDATED", target.getUserId(), operator.getUserId()
+        );
         return toAdminUserListItem(target);
     }
 
